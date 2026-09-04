@@ -1,0 +1,99 @@
+import AppError from "../../shared/errors/AppError.js";
+import { queueRepository } from "./queue.repository.js";
+import { eventRepository } from "../events/event.repository.js";
+
+export const createQueue = async (organizerId, data) => {
+  const { eventId, name, description, maxCapacity, priorityPolicy, vipWeight, normalWeight, estimatedServiceTime, maxVipStreak, agingIntervalSec, agingScoreStep } = data;
+
+  if (!eventId || !name) {
+    throw new AppError("eventId and name are required to create a queue", 400, "MISSING_REQUIRED_FIELDS");
+  }
+
+  const event = await eventRepository.findByIdAndOrganizer(eventId, organizerId);
+  if (!event) {
+    throw new AppError("Event not found or unauthorized", 404, "EVENT_NOT_FOUND");
+  }
+
+  return queueRepository.create({
+    eventId,
+    name,
+    description: description || null,
+    status: "OPEN",
+    maxCapacity: maxCapacity ? Number(maxCapacity) : null,
+    priorityPolicy: priorityPolicy || "FIFO",
+    vipWeight: vipWeight ? Number(vipWeight) : 2,
+    normalWeight: normalWeight ? Number(normalWeight) : 1,
+    estimatedServiceTime: estimatedServiceTime ? Number(estimatedServiceTime) : 5,
+    maxVipStreak: maxVipStreak ? Number(maxVipStreak) : 2,
+    agingIntervalSec: agingIntervalSec ? Number(agingIntervalSec) : 300,
+    agingScoreStep: agingScoreStep ? Number(agingScoreStep) : 10,
+  });
+};
+
+export const getQueuesForEvent = async (eventId, organizerId) => {
+  const event = await eventRepository.findByIdAndOrganizer(eventId, organizerId);
+  if (!event) {
+    throw new AppError("Event not found or unauthorized", 404, "EVENT_NOT_FOUND");
+  }
+  return queueRepository.findByEventId(eventId);
+};
+
+export const getQueueById = async (id, organizerId) => {
+  const queue = await queueRepository.findById(id);
+  if (!queue || queue.event.organizerId !== organizerId) {
+    throw new AppError("Queue not found or unauthorized", 404, "QUEUE_NOT_FOUND");
+  }
+  return queue;
+};
+
+export const getQueuePublic = async (id) => {
+  const queue = await queueRepository.findById(id);
+  if (!queue) {
+    throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
+  }
+  
+  // Return only safe fields for the public
+  return {
+    id: queue.id,
+    eventId: queue.eventId,
+    name: queue.name,
+    description: queue.description,
+    status: queue.status,
+    estimatedServiceTime: queue.estimatedServiceTime,
+    _count: queue._count,
+    event: {
+      name: queue.event.name,
+      businessId: queue.event.businessId,
+    }
+  };
+};
+
+export const updateQueue = async (id, organizerId, data) => {
+  const queue = await queueRepository.findById(id);
+  if (!queue || queue.event.organizerId !== organizerId) {
+    throw new AppError("Queue not found or unauthorized", 404, "QUEUE_NOT_FOUND");
+  }
+
+  const updatePayload = {};
+  if (data.name !== undefined) updatePayload.name = data.name;
+  if (data.description !== undefined) updatePayload.description = data.description;
+  if (data.status !== undefined) updatePayload.status = data.status; // OPEN, PAUSED, CLOSED
+  if (data.maxCapacity !== undefined) updatePayload.maxCapacity = data.maxCapacity !== null ? Number(data.maxCapacity) : null;
+  if (data.priorityPolicy !== undefined) updatePayload.priorityPolicy = data.priorityPolicy;
+  if (data.vipWeight !== undefined) updatePayload.vipWeight = Number(data.vipWeight);
+  if (data.normalWeight !== undefined) updatePayload.normalWeight = Number(data.normalWeight);
+  if (data.estimatedServiceTime !== undefined) updatePayload.estimatedServiceTime = Number(data.estimatedServiceTime);
+  if (data.maxVipStreak !== undefined) updatePayload.maxVipStreak = Number(data.maxVipStreak);
+  if (data.agingIntervalSec !== undefined) updatePayload.agingIntervalSec = Number(data.agingIntervalSec);
+  if (data.agingScoreStep !== undefined) updatePayload.agingScoreStep = Number(data.agingScoreStep);
+
+  return queueRepository.update(id, updatePayload);
+};
+
+export const deleteQueue = async (id, organizerId) => {
+  const queue = await queueRepository.findById(id);
+  if (!queue || queue.event.organizerId !== organizerId) {
+    throw new AppError("Queue not found or unauthorized", 404, "QUEUE_NOT_FOUND");
+  }
+  return queueRepository.delete(id);
+};

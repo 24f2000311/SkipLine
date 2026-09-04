@@ -4,6 +4,7 @@ import logger from "../logger/logger.js";
 const connectDatabase = async () => {
   try {
     await prisma.$connect();
+    console.log("Database Connected Successfully")
 
     logger.info({
       event: "database.connected",

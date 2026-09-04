@@ -9,6 +9,7 @@ const env = {
   appVersion: process.env.APP_VERSION || "1.0.0",
   logLevel: process.env.LOG_LEVEL || "info",
   databaseUrl: process.env.DATABASE_URL,
+  jwtSecret: process.env.JWT_SECRET || "skipline_dev_jwt_secret_key_change_in_prod",
 };
 
 export default env;

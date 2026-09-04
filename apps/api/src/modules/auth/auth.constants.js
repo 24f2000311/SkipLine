@@ -1,0 +1,5 @@
+export const AUTH_CONSTANTS = Object.freeze({
+  ACCESS_TOKEN_EXPIRY: "15m",
+  REFRESH_TOKEN_EXPIRY_DAYS: 7,
+  SALT_ROUNDS: 10,
+});

@@ -5,3 +5,154 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id              String     @id @default(uuid())
+  name            String
+  email           String     @unique
+  phone           String?
+  passwordHash    String
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  events        Event[]
+  refreshTokens RefreshToken[]
+
+  @@index([status])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  organizerId String
+  name        String
+  description String?
+  venue       String?
+  startAt     DateTime
+  endAt       DateTime
+  status      EventStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  organizer User    @relation(fields: [organizerId], references: [id])
+  queues    Queue[]
+
+  @@index([organizerId])
+  @@index([status])
+  @@index([startAt])
+}
+
+enum EventStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Queue {
+  id                   String         @id @default(uuid())
+  eventId              String
+  name                 String
+  description          String?
+  status               QueueStatus    @default(OPEN)
+  maxCapacity          Int?
+  priorityPolicy       PriorityPolicy @default(FIFO)
+  vipWeight            Int            @default(2)
+  normalWeight         Int            @default(1)
+  estimatedServiceTime Int            @default(5)
+  totalCallsCount      Int            @default(0)
+  consecutiveVipCount  Int            @default(0)
+  maxVipStreak         Int            @default(2)
+  agingIntervalSec     Int            @default(300)
+  agingScoreStep       Int            @default(10)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  event   Event        @relation(fields: [eventId], references: [id])
+  entries QueueEntry[]
+
+  @@index([eventId])
+  @@index([status])
+}
+
+enum QueueStatus {
+  OPEN
+  PAUSED
+  CLOSED
+}
+
+enum PriorityPolicy {
+  FIFO
+  WEIGHTED_PRIORITY
+}
+
+model QueueEntry {
+  id      String @id @default(uuid())
+  queueId String
+
+  token           String
+  accessTokenHash String @unique
+  sessionId       String
+
+  customerName  String?
+  customerPhone String?
+
+  priority                 EntryPriority @default(NORMAL)
+  status                   EntryStatus   @default(WAITING)
+  sequenceNumber           BigInt
+  requeueAfterCallCount    Int?
+
+  noShowCount  Int       @default(0)
+  lastNoShowAt DateTime?
+
+  joinedAt    DateTime  @default(now())
+  calledAt    DateTime?
+  servingAt   DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  queue Queue @relation(fields: [queueId], references: [id])
+
+  @@index([queueId, status])
+  @@index([queueId, priority, status])
+  @@index([sessionId])
+  @@index([queueId, sequenceNumber])
+}
+
+enum EntryPriority {
+  NORMAL
+  VIP
+}
+
+enum EntryStatus {
+  WAITING
+  CALLED
+  SERVING
+  COMPLETED
+  CANCELLED
+  SKIPPED
+}

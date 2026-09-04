@@ -1,6 +1,8 @@
 import { Router } from "express";
-import AppError from "../shared/errors/AppError.js";
-import validate from "../middleware/validation.middleware.js";
+import authRouter from "../modules/auth/auth.routes.js";
+import eventRouter from "../modules/events/event.routes.js";
+import queueRouter from "../modules/queues/queue.routes.js";
+import queueEntryRouter from "../modules/queue-entries/queue-entry.routes.js";
 
 const router = Router();
 
@@ -11,8 +13,9 @@ router.get("/health", (req, res) => {
   });
 });
 
-router.get("/test-error", (req, res) => {
-  throw new AppError("This is a test error", 400, "TEST_ERROR");
-});
+router.use("/", authRouter);
+router.use("/", eventRouter);
+router.use("/", queueRouter);
+router.use("/", queueEntryRouter);
 
 export default router;

@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: skipline-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: skipline
+      POSTGRES_USER: skipline
+      POSTGRES_PASSWORD: root123
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

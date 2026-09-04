@@ -1,0 +1,41 @@
+export const QUEUE_ENTRY_STATUS = Object.freeze({
+  WAITING: "WAITING",
+  CALLED: "CALLED",
+  SERVING: "SERVING",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+  SKIPPED: "SKIPPED",
+});
+
+export const ALLOWED_QUEUE_ENTRY_TRANSITIONS = Object.freeze({
+  [QUEUE_ENTRY_STATUS.WAITING]: Object.freeze([
+    QUEUE_ENTRY_STATUS.CALLED,
+    QUEUE_ENTRY_STATUS.CANCELLED,
+  ]),
+  [QUEUE_ENTRY_STATUS.CALLED]: Object.freeze([
+    QUEUE_ENTRY_STATUS.SERVING,
+    QUEUE_ENTRY_STATUS.CANCELLED,
+    QUEUE_ENTRY_STATUS.WAITING,
+    QUEUE_ENTRY_STATUS.SKIPPED,
+  ]),
+  [QUEUE_ENTRY_STATUS.SERVING]: Object.freeze([
+    QUEUE_ENTRY_STATUS.COMPLETED,
+  ]),
+  [QUEUE_ENTRY_STATUS.COMPLETED]: Object.freeze([]),
+  [QUEUE_ENTRY_STATUS.CANCELLED]: Object.freeze([]),
+  [QUEUE_ENTRY_STATUS.SKIPPED]: Object.freeze([]),
+});
+
+export const MAX_NO_SHOW_ATTEMPTS = 3;
+
+export const NO_SHOW_REQUEUE_PENALTIES = Object.freeze({
+  NORMAL: Object.freeze({
+    1: 5,
+    2: 15,
+  }),
+  VIP: Object.freeze({
+    1: 3,
+    2: 8,
+  }),
+});
+
