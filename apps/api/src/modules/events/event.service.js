@@ -24,7 +24,7 @@ export const createEvent = async (organizerId, { name, description, venue, start
     venue: venue || null,
     startAt: startDate,
     endAt: endDate,
-    status: status || "DRAFT",
+    status: "DRAFT",
   });
 };
 

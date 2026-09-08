@@ -14,12 +14,20 @@ export const createQueue = async (organizerId, data) => {
     throw new AppError("Event not found or unauthorized", 404, "EVENT_NOT_FOUND");
   }
 
+  let parsedCapacity = null;
+  if (maxCapacity !== undefined && maxCapacity !== null) {
+    parsedCapacity = Number(maxCapacity);
+    if (parsedCapacity <= 0) {
+      throw new AppError("maxCapacity must be greater than 0", 400, "INVALID_CAPACITY");
+    }
+  }
+
   return queueRepository.create({
     eventId,
     name,
     description: description || null,
     status: "OPEN",
-    maxCapacity: maxCapacity ? Number(maxCapacity) : null,
+    maxCapacity: parsedCapacity,
     priorityPolicy: priorityPolicy || "FIFO",
     vipWeight: vipWeight ? Number(vipWeight) : 2,
     normalWeight: normalWeight ? Number(normalWeight) : 1,
@@ -96,7 +104,17 @@ export const updateQueue = async (id, organizerId, data) => {
   if (data.name !== undefined) updatePayload.name = data.name;
   if (data.description !== undefined) updatePayload.description = data.description;
   if (data.status !== undefined) updatePayload.status = data.status; // OPEN, PAUSED, CLOSED
-  if (data.maxCapacity !== undefined) updatePayload.maxCapacity = data.maxCapacity !== null ? Number(data.maxCapacity) : null;
+  if (data.maxCapacity !== undefined) {
+    if (data.maxCapacity !== null) {
+      const parsedCapacity = Number(data.maxCapacity);
+      if (parsedCapacity <= 0) {
+        throw new AppError("maxCapacity must be greater than 0", 400, "INVALID_CAPACITY");
+      }
+      updatePayload.maxCapacity = parsedCapacity;
+    } else {
+      updatePayload.maxCapacity = null;
+    }
+  }
   if (data.priorityPolicy !== undefined) updatePayload.priorityPolicy = data.priorityPolicy;
   if (data.vipWeight !== undefined) updatePayload.vipWeight = Number(data.vipWeight);
   if (data.normalWeight !== undefined) updatePayload.normalWeight = Number(data.normalWeight);

@@ -6,11 +6,26 @@ import * as queueEntryService from "./queue-entry.service.js";
 const serializeQueueEntry = (entry) => {
   if (!entry) return null;
   return {
-    ...entry,
-    sequenceNumber:
-      entry.sequenceNumber !== undefined && entry.sequenceNumber !== null
-        ? Number(entry.sequenceNumber)
-        : null,
+    id: entry.id,
+    queueId: entry.queueId,
+    customerName: entry.customerName,
+    customerPhone: entry.customerPhone,
+    priority: entry.priority,
+    status: entry.status,
+    sequenceNumber: entry.sequenceNumber !== undefined && entry.sequenceNumber !== null
+      ? Number(entry.sequenceNumber)
+      : null,
+    token: entry.token,
+    requeueAfterCallCount: entry.requeueAfterCallCount,
+    noShowCount: entry.noShowCount,
+    lastNoShowAt: entry.lastNoShowAt,
+    joinedAt: entry.joinedAt,
+    calledAt: entry.calledAt,
+    servingAt: entry.servingAt,
+    completedAt: entry.completedAt,
+    cancelledAt: entry.cancelledAt,
+    createdAt: entry.createdAt,
+    updatedAt: entry.updatedAt,
   };
 };
 
@@ -95,7 +110,7 @@ export const queueEntryController = {
   async callNext(req, res, next) {
     try {
       const { queueId } = req.params;
-      const calledEntry = await queueEntryService.callNext(queueId);
+      const calledEntry = await queueEntryService.callNext(queueId, req.user.id);
 
       if (!calledEntry) {
         return res.status(200).json({
@@ -140,7 +155,7 @@ export const queueEntryController = {
   async startServing(req, res, next) {
     try {
       const { id } = req.params;
-      const updatedEntry = await queueEntryService.startServing(id);
+      const updatedEntry = await queueEntryService.startServing(id, req.user.id);
 
       res.status(200).json({
         success: true,
@@ -159,7 +174,7 @@ export const queueEntryController = {
   async handleNoShow(req, res, next) {
     try {
       const { id } = req.params;
-      const updatedEntry = await queueEntryService.handleNoShow(id);
+      const updatedEntry = await queueEntryService.handleNoShow(id, req.user.id);
 
       res.status(200).json({
         success: true,
@@ -181,7 +196,7 @@ export const queueEntryController = {
   async completeService(req, res, next) {
     try {
       const { id } = req.params;
-      const updatedEntry = await queueEntryService.completeService(id);
+      const updatedEntry = await queueEntryService.completeService(id, req.user.id);
 
       res.status(200).json({
         success: true,

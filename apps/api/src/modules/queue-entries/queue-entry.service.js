@@ -340,13 +340,15 @@ export const selectNextQueueEntry = (queue, waitingEntries, now = new Date()) =>
  * @param {string} queueId
  * @returns {Promise<object|null>} The called QueueEntry, or null if no eligible waiting entries.
  */
-export const callNext = async (queueId) => {
+export const callNext = async (queueId, organizerId) => {
   const result = await prisma.$transaction(async (tx) => {
     // Lock the Queue row to serialize concurrent callNext calls
     const lockedQueues = await tx.$queryRaw`
-      SELECT * FROM "Queue"
-      WHERE id = ${queueId}
-      FOR UPDATE
+      SELECT q.*, e."organizerId" AS "eventOrganizerId" 
+      FROM "Queue" q
+      JOIN "Event" e ON q."eventId" = e.id
+      WHERE q.id = ${queueId}
+      FOR UPDATE OF q
     `;
 
     if (!lockedQueues || lockedQueues.length === 0) {
@@ -354,6 +356,10 @@ export const callNext = async (queueId) => {
     }
 
     const queueRow = lockedQueues[0];
+
+    if (queueRow.eventOrganizerId !== organizerId) {
+      throw new AppError("Unauthorized access to queue", 404, "QUEUE_NOT_FOUND");
+    }
 
     if (queueRow.status === "CLOSED") {
       throw new AppError(
@@ -476,10 +482,10 @@ export const leaveQueue = async (entryId) => {
  * @param {string} entryId
  * @returns {Promise<object>} The updated QueueEntry.
  */
-export const startServing = async (entryId) => {
+export const startServing = async (entryId, organizerId) => {
   const entry = await queueEntryRepository.findById(entryId);
-  if (!entry) {
-    throw new AppError("Queue entry not found", 404, "ENTRY_NOT_FOUND");
+  if (!entry || (organizerId && entry.queue.event.organizerId !== organizerId)) {
+    throw new AppError("Queue entry not found or unauthorized", 404, "ENTRY_NOT_FOUND");
   }
 
   validateStatusTransition(entry.status, QUEUE_ENTRY_STATUS.SERVING);
@@ -503,10 +509,10 @@ export const startServing = async (entryId) => {
  * @param {string} entryId
  * @returns {Promise<object>} The updated QueueEntry.
  */
-export const completeService = async (entryId) => {
+export const completeService = async (entryId, organizerId) => {
   const entry = await queueEntryRepository.findById(entryId);
-  if (!entry) {
-    throw new AppError("Queue entry not found", 404, "ENTRY_NOT_FOUND");
+  if (!entry || (organizerId && entry.queue.event.organizerId !== organizerId)) {
+    throw new AppError("Queue entry not found or unauthorized", 404, "ENTRY_NOT_FOUND");
   }
 
   validateStatusTransition(entry.status, QUEUE_ENTRY_STATUS.COMPLETED);
@@ -530,11 +536,11 @@ export const completeService = async (entryId) => {
  * @param {string} queueEntryId
  * @returns {Promise<object>} The updated QueueEntry.
  */
-export const handleNoShow = async (queueEntryId) => {
+export const handleNoShow = async (queueEntryId, organizerId) => {
   const entry = await queueEntryRepository.findById(queueEntryId);
 
-  if (!entry) {
-    throw new AppError("Queue entry not found", 404, "ENTRY_NOT_FOUND");
+  if (!entry || (organizerId && entry.queue.event.organizerId !== organizerId)) {
+    throw new AppError("Queue entry not found or unauthorized", 404, "ENTRY_NOT_FOUND");
   }
 
   if (entry.status !== QUEUE_ENTRY_STATUS.CALLED) {

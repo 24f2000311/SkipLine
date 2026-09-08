@@ -25,6 +25,8 @@ export const createEvent = async (token, eventOverrides = {}) => {
   const endAt = new Date();
   endAt.setHours(endAt.getHours() + 2);
 
+  const { status, ...createOverrides } = eventOverrides;
+
   const res = await request(app)
     .post('/api/v1/events')
     .set('Authorization', `Bearer ${token}`)
@@ -32,13 +34,29 @@ export const createEvent = async (token, eventOverrides = {}) => {
       name: 'Integration Test Event',
       startAt: startAt.toISOString(),
       endAt: endAt.toISOString(),
-      ...eventOverrides
+      ...createOverrides
     });
     
   if (res.status >= 400) {
     throw new Error(`Failed to create event: ${JSON.stringify(res.body)}`);
   }
-  return res.body.data;
+
+  let event = res.body.data;
+
+  // Since createEvent always forces DRAFT, PUT to transition if a different status was requested
+  if (status && status !== 'DRAFT') {
+    const updateRes = await request(app)
+      .put(`/api/v1/events/${event.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status });
+
+    if (updateRes.status >= 400) {
+      throw new Error(`Failed to update event status to ${status}: ${JSON.stringify(updateRes.body)}`);
+    }
+    event = updateRes.body.data;
+  }
+
+  return event;
 };
 
 export const createQueue = async (token, eventId, queueOverrides = {}) => {

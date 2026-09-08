@@ -45,7 +45,9 @@ export const queueEntryRepository = {
     return tx.queueEntry.findUnique({
       where: { id },
       include: {
-        queue: true,
+        queue: {
+          include: { event: true },
+        },
       },
     });
   },
