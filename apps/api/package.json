@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "seed": "node prisma/seed.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "cross-env PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"The user has approved this document.\" DATABASE_URL=\"postgresql://skipline:root123@localhost:5433/skipline_test?schema=public\" npx prisma db push --accept-data-loss && cross-env DATABASE_URL=\"postgresql://skipline:root123@localhost:5433/skipline_test?schema=public\" vitest run --no-file-parallelism -c vitest.integration.config.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -34,8 +35,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.9.1",
+    "supertest": "^7.2.2",
     "vitest": "^5.0.0"
   }
 }
