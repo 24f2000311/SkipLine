@@ -68,6 +68,27 @@ const createTestApp = (logStream) => {
     next(err);
   });
 
+  app.get("/api/operational", (req, res, next) => {
+    const err = new Error("Invalid input format");
+    err.statusCode = 400;
+    err.isOperational = true;
+    next(err);
+  });
+
+  app.get("/api/forbidden", (req, res, next) => {
+    const err = new Error("Access denied");
+    err.statusCode = 403;
+    err.isOperational = true;
+    next(err);
+  });
+
+  app.get("/api/not-found", (req, res, next) => {
+    const err = new Error("Resource not found");
+    err.statusCode = 404;
+    err.isOperational = true;
+    next(err);
+  });
+
   app.use(errorMiddleware);
   return app;
 };
@@ -144,5 +165,27 @@ describe("Request ID and Logging Integration", () => {
     const reqLog = logs.find(l => l.req);
     expect(reqLog.req.headers.authorization).toBe("[REDACTED]");
     expect(reqLog.req.headers["x-access-token"]).toBe("[REDACTED]");
+  });
+
+  it("operational error response maintains custom message and status", async () => {
+    const res = await request(app).get("/api/operational");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error.message).toBe("Invalid input format");
+    
+    const warnLog = logs.find(l => l.msg === "Operational error");
+    expect(warnLog).toBeDefined();
+    expect(warnLog.requestId).toBe(res.headers["x-request-id"]);
+  });
+
+  it("authorization error preserves correct status", async () => {
+    const res = await request(app).get("/api/forbidden");
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error.message).toBe("Access denied");
+  });
+
+  it("not-found error preserves correct status", async () => {
+    const res = await request(app).get("/api/not-found");
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error.message).toBe("Resource not found");
   });
 });
