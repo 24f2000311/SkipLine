@@ -54,6 +54,10 @@ export const updateEvent = async (id, organizerId, data) => {
   if (data.startAt !== undefined) updatePayload.startAt = new Date(data.startAt);
   if (data.endAt !== undefined) updatePayload.endAt = new Date(data.endAt);
 
+  if (updatePayload.status === "CANCELLED" && event.status !== "CANCELLED") {
+    return eventRepository.updateEventAndCancelEntries(id, updatePayload);
+  }
+
   return eventRepository.update(id, updatePayload);
 };
 

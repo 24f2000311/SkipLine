@@ -57,4 +57,29 @@ export const queueRepository = {
       where: { id },
     });
   },
+
+  async updateQueueAndCancelWaitingEntries(queueId, queueData) {
+    return prisma.$transaction(async (tx) => {
+      const updatedQueue = await tx.queue.update({
+        where: { id: queueId },
+        data: queueData,
+        include: {
+          event: true,
+        },
+      });
+
+      await tx.queueEntry.updateMany({
+        where: {
+          queueId,
+          status: "WAITING",
+        },
+        data: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+        },
+      });
+
+      return updatedQueue;
+    });
+  },
 };

@@ -51,6 +51,18 @@ export const getQueuePublic = async (id) => {
   if (!queue) {
     throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
   }
+
+  const now = new Date();
+  if (
+    ["DRAFT", "SCHEDULED", "COMPLETED", "CANCELLED"].includes(queue.event.status) ||
+    new Date(queue.event.endAt) <= now
+  ) {
+    throw new AppError(
+      "The event for this queue is not currently live or is unavailable.",
+      403,
+      "EVENT_UNAVAILABLE"
+    );
+  }
   
   // Return only safe fields for the public
   return {
@@ -74,6 +86,12 @@ export const updateQueue = async (id, organizerId, data) => {
     throw new AppError("Queue not found or unauthorized", 404, "QUEUE_NOT_FOUND");
   }
 
+  if (data.status !== undefined && queue.status !== data.status) {
+    if (queue.status === "CLOSED") {
+      throw new AppError("Cannot change status of a CLOSED queue", 400, "INVALID_STATE_TRANSITION");
+    }
+  }
+
   const updatePayload = {};
   if (data.name !== undefined) updatePayload.name = data.name;
   if (data.description !== undefined) updatePayload.description = data.description;
@@ -86,6 +104,10 @@ export const updateQueue = async (id, organizerId, data) => {
   if (data.maxVipStreak !== undefined) updatePayload.maxVipStreak = Number(data.maxVipStreak);
   if (data.agingIntervalSec !== undefined) updatePayload.agingIntervalSec = Number(data.agingIntervalSec);
   if (data.agingScoreStep !== undefined) updatePayload.agingScoreStep = Number(data.agingScoreStep);
+
+  if (updatePayload.status === "CLOSED" && queue.status !== "CLOSED") {
+    return queueRepository.updateQueueAndCancelWaitingEntries(id, updatePayload);
+  }
 
   return queueRepository.update(id, updatePayload);
 };

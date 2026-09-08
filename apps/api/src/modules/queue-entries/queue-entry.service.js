@@ -115,10 +115,20 @@ export const joinQueue = async ({
 
   const queue = await prisma.queue.findUnique({
     where: { id: queueId },
+    include: { event: true },
   });
 
   if (!queue) {
     throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
+  }
+
+  const now = new Date();
+  if (queue.event.status !== "LIVE" || new Date(queue.event.endAt) <= now) {
+    throw new AppError(
+      "Cannot join queue. The event is not live or has ended.",
+      403,
+      "EVENT_UNAVAILABLE"
+    );
   }
 
   if (queue.status !== "OPEN") {
