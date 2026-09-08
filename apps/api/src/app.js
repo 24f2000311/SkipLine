@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 
 import apiRouter from "./routes/index.js";
+import healthRouter from "./routes/health.routes.js";
 import errorMiddleware from "./middleware/error.middleware.js";
 import httpLogger from "./infrastructure/logger/httpLogger.js";
 
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use(httpLogger);
 
+app.use("/health", healthRouter);
 app.use("/api/v1", apiRouter);
 
 app.use(errorMiddleware);
