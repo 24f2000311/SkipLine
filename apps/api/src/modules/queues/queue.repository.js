@@ -68,18 +68,25 @@ export const queueRepository = {
         },
       });
 
-      await tx.queueEntry.updateMany({
-        where: {
-          queueId,
-          status: "WAITING",
-        },
-        data: {
-          status: "CANCELLED",
-          cancelledAt: new Date(),
-        },
+      const affectedEntries = await tx.queueEntry.findMany({
+        where: { queueId, status: "WAITING" },
+        select: { id: true }
       });
 
-      return updatedQueue;
+      if (affectedEntries.length > 0) {
+        await tx.queueEntry.updateMany({
+          where: {
+            queueId,
+            status: "WAITING",
+          },
+          data: {
+            status: "CANCELLED",
+            cancelledAt: new Date(),
+          },
+        });
+      }
+
+      return { updatedQueue, cancelledEntryIds: affectedEntries.map(e => e.id) };
     });
   },
 };

@@ -1,4 +1,8 @@
 import { WebSocketServer, WebSocket } from "ws";
+import url from "url";
+import { verifyAccessToken } from "../../modules/auth/auth.utils.js";
+import { hashAccessToken } from "../../modules/queue-entries/queue-entry.utils.js";
+import prisma from "../database/prisma.js";
 
 let wss = null;
 
@@ -6,6 +10,10 @@ let wss = null;
  * Maps queueId -> Set of connected WebSocket clients listening for queue updates.
  */
 const queueSubscriptions = new Map();
+
+const isValidUUID = (uuid) => {
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid);
+};
 
 /**
  * Initializes the WebSocket server attached to the HTTP server.
@@ -18,16 +26,71 @@ export const initWebSocketServer = (httpServer) => {
     ws.isAlive = true;
     ws.subscribedQueues = new Set();
 
+    try {
+      const parsedUrl = url.parse(req.url, true);
+      const token = parsedUrl.query.token;
+
+      if (token) {
+        const decoded = verifyAccessToken(token);
+        ws.organizerId = decoded.id;
+      }
+    } catch (err) {
+      ws.send(JSON.stringify({ event: "ERROR", message: "Invalid or expired token" }));
+      ws.close(4001, "Unauthorized");
+      return;
+    }
+
     ws.on("pong", () => {
       ws.isAlive = true;
     });
 
-    ws.on("message", (rawMessage) => {
+    ws.on("message", async (rawMessage) => {
       try {
         const message = JSON.parse(rawMessage.toString());
-        const { action, queueId } = message;
+        const { action, queueId, accessToken } = message;
 
-        if (action === "SUBSCRIBE" && queueId) {
+        if (!action || (action !== "SUBSCRIBE" && action !== "UNSUBSCRIBE")) {
+          ws.send(JSON.stringify({ event: "ERROR", message: "Invalid or malformed action" }));
+          return;
+        }
+
+        if (!queueId || !isValidUUID(queueId)) {
+          ws.send(JSON.stringify({ event: "ERROR", message: "Missing or invalid queueId" }));
+          return;
+        }
+
+        if (action === "SUBSCRIBE") {
+          // Authentication & Authorization check
+          if (ws.organizerId) {
+            // Organizer Auth
+            const queue = await prisma.queue.findUnique({
+              where: { id: queueId },
+              include: { event: true },
+            });
+            if (!queue || queue.event.organizerId !== ws.organizerId) {
+              ws.send(JSON.stringify({ event: "ERROR", message: "Unauthorized queue access" }));
+              return;
+            }
+          } else {
+            // Customer Auth
+            if (!accessToken) {
+              ws.send(JSON.stringify({ event: "ERROR", message: "Missing credentials" }));
+              return;
+            }
+
+            const hash = hashAccessToken(accessToken);
+            const entry = await prisma.queueEntry.findFirst({
+              where: { queueId, accessTokenHash: hash },
+            });
+
+            if (!entry) {
+              ws.send(JSON.stringify({ event: "ERROR", message: "Invalid customer credential or unauthorized queue" }));
+              return;
+            }
+            ws.customerEntryId = entry.id; // Server-side context
+          }
+
+          // Subscribed!
           ws.subscribedQueues.add(queueId);
           if (!queueSubscriptions.has(queueId)) {
             queueSubscriptions.set(queueId, new Set());
@@ -41,10 +104,13 @@ export const initWebSocketServer = (httpServer) => {
               message: `Subscribed to real-time updates for queue ${queueId}`,
             })
           );
-        } else if (action === "UNSUBSCRIBE" && queueId) {
-          ws.subscribedQueues.delete(queueId);
-          if (queueSubscriptions.has(queueId)) {
-            queueSubscriptions.get(queueId).delete(ws);
+        } else if (action === "UNSUBSCRIBE") {
+          // Only unsubscribe if we were already subscribed
+          if (ws.subscribedQueues.has(queueId)) {
+            ws.subscribedQueues.delete(queueId);
+            if (queueSubscriptions.has(queueId)) {
+              queueSubscriptions.get(queueId).delete(ws);
+            }
           }
         }
       } catch (err) {

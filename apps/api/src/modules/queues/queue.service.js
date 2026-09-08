@@ -1,6 +1,7 @@
 import AppError from "../../shared/errors/AppError.js";
 import { queueRepository } from "./queue.repository.js";
 import { eventRepository } from "../events/event.repository.js";
+import { broadcastToQueue } from "../../infrastructure/websocket/websocket.server.js";
 
 export const createQueue = async (organizerId, data) => {
   const { eventId, name, description, maxCapacity, priorityPolicy, vipWeight, normalWeight, estimatedServiceTime, maxVipStreak, agingIntervalSec, agingScoreStep } = data;
@@ -123,11 +124,23 @@ export const updateQueue = async (id, organizerId, data) => {
   if (data.agingIntervalSec !== undefined) updatePayload.agingIntervalSec = Number(data.agingIntervalSec);
   if (data.agingScoreStep !== undefined) updatePayload.agingScoreStep = Number(data.agingScoreStep);
 
+  let result;
+  let cancelledIds = [];
   if (updatePayload.status === "CLOSED" && queue.status !== "CLOSED") {
-    return queueRepository.updateQueueAndCancelWaitingEntries(id, updatePayload);
+    const txRes = await queueRepository.updateQueueAndCancelWaitingEntries(id, updatePayload);
+    result = txRes.updatedQueue;
+    cancelledIds = txRes.cancelledEntryIds;
+  } else {
+    result = await queueRepository.update(id, updatePayload);
   }
 
-  return queueRepository.update(id, updatePayload);
+  broadcastToQueue(id, "QUEUE_UPDATED", { queueId: id });
+
+  for (const entryId of cancelledIds) {
+    broadcastToQueue(id, "QUEUE_ENTRY_UPDATED", { entryId, status: "CANCELLED" });
+  }
+
+  return result;
 };
 
 export const deleteQueue = async (id, organizerId) => {

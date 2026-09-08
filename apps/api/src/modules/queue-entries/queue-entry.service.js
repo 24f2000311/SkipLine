@@ -219,12 +219,9 @@ export const joinQueue = async ({
     };
   });
 
-  broadcastToQueue(queueId, "QUEUE_ENTRY_JOINED", {
+  broadcastToQueue(queueId, "QUEUE_ENTRY_UPDATED", {
     entryId: result.entry.id,
-    token: result.entry.token,
-    priority: result.entry.priority,
     status: result.entry.status,
-    position: result.position,
   });
 
   return result;
@@ -409,10 +406,8 @@ export const callNext = async (queueId, organizerId) => {
   });
 
   if (result) {
-    broadcastToQueue(queueId, "QUEUE_ENTRY_CALLED", {
+    broadcastToQueue(queueId, "QUEUE_ENTRY_UPDATED", {
       entryId: result.id,
-      token: result.token,
-      priority: result.priority,
       status: "CALLED",
     });
   }
@@ -468,9 +463,8 @@ export const leaveQueue = async (entryId) => {
     cancelledAt: new Date(),
   });
 
-  broadcastToQueue(entry.queueId, "QUEUE_ENTRY_CANCELLED", {
+  broadcastToQueue(entry.queueId, "QUEUE_ENTRY_UPDATED", {
     entryId: entry.id,
-    token: entry.token,
     status: "CANCELLED",
   });
 
@@ -495,9 +489,8 @@ export const startServing = async (entryId, organizerId) => {
     servingAt: new Date(),
   });
 
-  broadcastToQueue(entry.queueId, "QUEUE_ENTRY_SERVING", {
+  broadcastToQueue(entry.queueId, "QUEUE_ENTRY_UPDATED", {
     entryId: entry.id,
-    token: entry.token,
     status: "SERVING",
   });
 
@@ -522,9 +515,8 @@ export const completeService = async (entryId, organizerId) => {
     completedAt: new Date(),
   });
 
-  broadcastToQueue(entry.queueId, "QUEUE_ENTRY_COMPLETED", {
+  broadcastToQueue(entry.queueId, "QUEUE_ENTRY_UPDATED", {
     entryId: entry.id,
-    token: entry.token,
     status: "COMPLETED",
   });
 
@@ -578,11 +570,9 @@ export const handleNoShow = async (queueEntryId, organizerId) => {
     });
   }
 
-  broadcastToQueue(entry.queueId, "QUEUE_ENTRY_NO_SHOW", {
+  broadcastToQueue(entry.queueId, "QUEUE_ENTRY_UPDATED", {
     entryId: entry.id,
-    token: entry.token,
     status: updated.status,
-    noShowCount: updated.noShowCount,
   });
 
   return updated;

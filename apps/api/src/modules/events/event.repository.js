@@ -56,20 +56,28 @@ export const eventRepository = {
       });
 
       const queueIds = updatedEvent.queues.map((q) => q.id);
+      let cancelledEntries = [];
       if (queueIds.length > 0) {
-        await tx.queueEntry.updateMany({
-          where: {
-            queueId: { in: queueIds },
-            status: { in: ["WAITING", "CALLED"] },
-          },
-          data: {
-            status: "CANCELLED",
-            cancelledAt: new Date(),
-          },
+        cancelledEntries = await tx.queueEntry.findMany({
+          where: { queueId: { in: queueIds }, status: { in: ["WAITING", "CALLED"] } },
+          select: { id: true, queueId: true }
         });
+
+        if (cancelledEntries.length > 0) {
+          await tx.queueEntry.updateMany({
+            where: {
+              queueId: { in: queueIds },
+              status: { in: ["WAITING", "CALLED"] },
+            },
+            data: {
+              status: "CANCELLED",
+              cancelledAt: new Date(),
+            },
+          });
+        }
       }
 
-      return updatedEvent;
+      return { updatedEvent, cancelledEntries };
     });
   },
 };

@@ -1,5 +1,6 @@
 import AppError from "../../shared/errors/AppError.js";
 import { eventRepository } from "./event.repository.js";
+import { broadcastToQueue } from "../../infrastructure/websocket/websocket.server.js";
 
 export const createEvent = async (organizerId, { name, description, venue, startAt, endAt, status }) => {
   if (!name || !startAt || !endAt) {
@@ -54,11 +55,26 @@ export const updateEvent = async (id, organizerId, data) => {
   if (data.startAt !== undefined) updatePayload.startAt = new Date(data.startAt);
   if (data.endAt !== undefined) updatePayload.endAt = new Date(data.endAt);
 
+  let result;
+  let cancelledEntries = [];
   if (updatePayload.status === "CANCELLED" && event.status !== "CANCELLED") {
-    return eventRepository.updateEventAndCancelEntries(id, updatePayload);
+    const txRes = await eventRepository.updateEventAndCancelEntries(id, updatePayload);
+    result = txRes.updatedEvent;
+    cancelledEntries = txRes.cancelledEntries;
+  } else {
+    result = await eventRepository.update(id, updatePayload);
   }
 
-  return eventRepository.update(id, updatePayload);
+  // Event updates affect all queues belonging to the event
+  result.queues.forEach(queue => {
+    broadcastToQueue(queue.id, "QUEUE_UPDATED", { queueId: queue.id });
+  });
+
+  for (const entry of cancelledEntries) {
+    broadcastToQueue(entry.queueId, "QUEUE_ENTRY_UPDATED", { entryId: entry.id, status: "CANCELLED" });
+  }
+
+  return result;
 };
 
 export const deleteEvent = async (id, organizerId) => {
