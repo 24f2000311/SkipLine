@@ -113,110 +113,121 @@ export const joinQueue = async ({
     throw new AppError("sessionId is required", 400, "MISSING_SESSION_ID");
   }
 
-  const queue = await prisma.queue.findUnique({
-    where: { id: queueId },
-    include: { event: true },
-  });
+  // All reads and writes inside a single transaction with a row lock on the Queue
+  // to serialize concurrent joins to the same queue.
+  const result = await prisma.$transaction(async (tx) => {
+    // Lock the Queue row to serialize concurrent joins
+    const lockedQueues = await tx.$queryRaw`
+      SELECT q.*, e.status AS "eventStatus", e."endAt" AS "eventEndAt"
+      FROM "Queue" q
+      JOIN "Event" e ON q."eventId" = e.id
+      WHERE q.id = ${queueId}
+      FOR UPDATE OF q
+    `;
 
-  if (!queue) {
-    throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
-  }
+    if (!lockedQueues || lockedQueues.length === 0) {
+      throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
+    }
 
-  const now = new Date();
-  if (queue.event.status !== "LIVE" || new Date(queue.event.endAt) <= now) {
-    throw new AppError(
-      "Cannot join queue. The event is not live or has ended.",
-      403,
-      "EVENT_UNAVAILABLE"
-    );
-  }
+    const queue = lockedQueues[0];
 
-  if (queue.status !== "OPEN") {
-    throw new AppError(
-      `Cannot join queue. Current queue status is '${queue.status}'.`,
-      400,
-      "QUEUE_NOT_OPEN"
-    );
-  }
+    const now = new Date();
+    if (queue.eventStatus !== "LIVE" || new Date(queue.eventEndAt) <= now) {
+      throw new AppError(
+        "Cannot join queue. The event is not live or has ended.",
+        403,
+        "EVENT_UNAVAILABLE"
+      );
+    }
 
-  if (queue.maxCapacity !== null && queue.maxCapacity !== undefined) {
-    const currentActiveCount = await prisma.queueEntry.count({
+    if (queue.status !== "OPEN") {
+      throw new AppError(
+        `Cannot join queue. Current queue status is '${queue.status}'.`,
+        400,
+        "QUEUE_NOT_OPEN"
+      );
+    }
+
+    if (queue.maxCapacity !== null && queue.maxCapacity !== undefined) {
+      const currentActiveCount = await tx.queueEntry.count({
+        where: {
+          queueId,
+          status: { in: ["WAITING", "CALLED", "SERVING"] },
+        },
+      });
+      if (currentActiveCount >= queue.maxCapacity) {
+        throw new AppError("Queue is currently at maximum capacity", 400, "QUEUE_FULL");
+      }
+    }
+
+    // Ensure user is not already in THIS queue (via sessionId)
+    const existingSessionEntry = await tx.queueEntry.findFirst({
       where: {
         queueId,
-        status: { in: ["WAITING", "CALLED", "SERVING"] },
-      },
-    });
-    if (currentActiveCount >= queue.maxCapacity) {
-      throw new AppError("Queue is currently at maximum capacity", 400, "QUEUE_FULL");
-    }
-  }
-
-  // Ensure user is not already in THIS queue (via sessionId)
-  const existingSessionEntry = await prisma.queueEntry.findFirst({
-    where: {
-      queueId,
-      sessionId,
-      status: { in: ["WAITING", "CALLED", "SERVING"] },
-    }
-  });
-
-  if (existingSessionEntry) {
-    throw new AppError("You are already in this queue.", 400, "ALREADY_IN_QUEUE");
-  }
-
-  // Ensure phone number is unique in THIS queue
-  if (customerPhone) {
-    const existingPhoneEntry = await prisma.queueEntry.findFirst({
-      where: {
-        queueId,
-        customerPhone,
+        sessionId,
         status: { in: ["WAITING", "CALLED", "SERVING"] },
       }
     });
 
-    if (existingPhoneEntry) {
-      throw new AppError("A customer with this phone number is already waiting in this queue.", 400, "PHONE_ALREADY_IN_QUEUE");
+    if (existingSessionEntry) {
+      throw new AppError("You are already in this queue.", 400, "ALREADY_IN_QUEUE");
     }
-  }
 
-  const rawAccessToken = generateAccessToken();
-  const accessTokenHash = hashAccessToken(rawAccessToken);
+    // Ensure phone number is unique in THIS queue
+    if (customerPhone) {
+      const existingPhoneEntry = await tx.queueEntry.findFirst({
+        where: {
+          queueId,
+          customerPhone,
+          status: { in: ["WAITING", "CALLED", "SERVING"] },
+        }
+      });
 
-  const sequenceNumber = await queueEntryRepository.getNextSequenceNumber(queueId);
-  const token = generateHumanToken(priority, sequenceNumber);
+      if (existingPhoneEntry) {
+        throw new AppError("A customer with this phone number is already waiting in this queue.", 400, "PHONE_ALREADY_IN_QUEUE");
+      }
+    }
 
-  const entry = await queueEntryRepository.create({
-    queueId,
-    sessionId,
-    customerName: customerName || null,
-    customerPhone: customerPhone || null,
-    priority: priority === "VIP" ? "VIP" : "NORMAL",
-    status: QUEUE_ENTRY_STATUS.WAITING,
-    sequenceNumber,
-    token,
-    accessTokenHash,
+    const rawAccessToken = generateAccessToken();
+    const accessTokenHash = hashAccessToken(rawAccessToken);
+
+    const sequenceNumber = await queueEntryRepository.getNextSequenceNumber(queueId, tx);
+    const token = generateHumanToken(priority, sequenceNumber);
+
+    const entry = await queueEntryRepository.create({
+      queueId,
+      sessionId,
+      customerName: customerName || null,
+      customerPhone: customerPhone || null,
+      priority: priority === "VIP" ? "VIP" : "NORMAL",
+      status: QUEUE_ENTRY_STATUS.WAITING,
+      sequenceNumber,
+      token,
+      accessTokenHash,
+    }, tx);
+
+    const waitingAhead = await queueEntryRepository.countWaitingAhead(queueId, sequenceNumber, tx);
+    const position = waitingAhead + 1;
+    const estimatedWaitTimeMinutes = position * (queue.estimatedServiceTime || 5);
+
+    return {
+      entry,
+      accessToken: rawAccessToken,
+      qrPayload: buildQrPayload(entry.id, rawAccessToken, baseUrl),
+      position,
+      estimatedWaitTimeMinutes,
+    };
   });
-
-  const qrPayload = buildQrPayload(entry.id, rawAccessToken, baseUrl);
-  const waitingAhead = await queueEntryRepository.countWaitingAhead(queueId, sequenceNumber);
-  const position = waitingAhead + 1;
-  const estimatedWaitTimeMinutes = position * (queue.estimatedServiceTime || 5);
 
   broadcastToQueue(queueId, "QUEUE_ENTRY_JOINED", {
-    entryId: entry.id,
-    token: entry.token,
-    priority: entry.priority,
-    status: entry.status,
-    position,
+    entryId: result.entry.id,
+    token: result.entry.token,
+    priority: result.entry.priority,
+    status: result.entry.status,
+    position: result.position,
   });
 
-  return {
-    entry,
-    accessToken: rawAccessToken,
-    qrPayload,
-    position,
-    estimatedWaitTimeMinutes,
-  };
+  return result;
 };
 
 /**
@@ -330,56 +341,77 @@ export const selectNextQueueEntry = (queue, waitingEntries, now = new Date()) =>
  * @returns {Promise<object|null>} The called QueueEntry, or null if no eligible waiting entries.
  */
 export const callNext = async (queueId) => {
-  const queueData = await queueEntryRepository.findQueueWithWaitingEntries(queueId);
+  const result = await prisma.$transaction(async (tx) => {
+    // Lock the Queue row to serialize concurrent callNext calls
+    const lockedQueues = await tx.$queryRaw`
+      SELECT * FROM "Queue"
+      WHERE id = ${queueId}
+      FOR UPDATE
+    `;
 
-  if (!queueData) {
-    throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
-  }
+    if (!lockedQueues || lockedQueues.length === 0) {
+      throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
+    }
 
-  if (queueData.status === "CLOSED") {
-    throw new AppError(
-      "Cannot call next customer from a CLOSED queue",
-      400,
-      "QUEUE_CLOSED"
-    );
-  }
+    const queueRow = lockedQueues[0];
 
-  const selectionResult = selectNextQueueEntry(queueData, queueData.entries);
+    if (queueRow.status === "CLOSED") {
+      throw new AppError(
+        "Cannot call next customer from a CLOSED queue",
+        400,
+        "QUEUE_CLOSED"
+      );
+    }
 
-  if (!selectionResult) {
-    return null;
-  }
+    // Read waiting entries inside the same transaction (after lock acquired)
+    const queueData = await queueEntryRepository.findQueueWithWaitingEntries(queueId, tx);
 
-  const { selectedEntry, nextConsecutiveVipCount } = selectionResult;
+    // Merge the locked row's metrics onto queueData for selectNextQueueEntry
+    queueData.totalCallsCount = queueRow.totalCallsCount;
+    queueData.consecutiveVipCount = queueRow.consecutiveVipCount;
 
-  validateStatusTransition(selectedEntry.status, QUEUE_ENTRY_STATUS.CALLED);
+    const selectionResult = selectNextQueueEntry(queueData, queueData.entries);
 
-  const now = new Date();
-  const entryUpdateData = {
-    status: QUEUE_ENTRY_STATUS.CALLED,
-    calledAt: now,
-  };
+    if (!selectionResult) {
+      return null;
+    }
 
-  const queueUpdateData = {
-    totalCallsCount: queueData.totalCallsCount + 1,
-    consecutiveVipCount: nextConsecutiveVipCount,
-  };
+    const { selectedEntry, nextConsecutiveVipCount } = selectionResult;
 
-  const updatedEntry = await queueEntryRepository.executeCallNextTransaction(
-    queueId,
-    selectedEntry.id,
-    entryUpdateData,
-    queueUpdateData
-  );
+    validateStatusTransition(selectedEntry.status, QUEUE_ENTRY_STATUS.CALLED);
 
-  broadcastToQueue(queueId, "QUEUE_ENTRY_CALLED", {
-    entryId: updatedEntry.id,
-    token: updatedEntry.token,
-    priority: updatedEntry.priority,
-    status: "CALLED",
+    const now = new Date();
+
+    const updatedEntry = await tx.queueEntry.update({
+      where: { id: selectedEntry.id },
+      data: {
+        status: QUEUE_ENTRY_STATUS.CALLED,
+        calledAt: now,
+      },
+      include: { queue: true },
+    });
+
+    await tx.queue.update({
+      where: { id: queueId },
+      data: {
+        totalCallsCount: queueRow.totalCallsCount + 1,
+        consecutiveVipCount: nextConsecutiveVipCount,
+      },
+    });
+
+    return updatedEntry;
   });
 
-  return updatedEntry;
+  if (result) {
+    broadcastToQueue(queueId, "QUEUE_ENTRY_CALLED", {
+      entryId: result.id,
+      token: result.token,
+      priority: result.priority,
+      status: "CALLED",
+    });
+  }
+
+  return result;
 };
 
 /**
