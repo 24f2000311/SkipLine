@@ -29,7 +29,13 @@ export const useCustomerStatus = (queueId: string) => {
       return response.data;
     },
     enabled: !!entryData?.entryId,
-    refetchInterval: 5000, // Poll every 5s for live updates
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      if (data?.status === "COMPLETED" || data?.status === "CANCELLED" || data?.status === "SKIPPED") {
+        return false;
+      }
+      return 5000;
+    }, // Poll every 5s for live updates
   });
 };
 

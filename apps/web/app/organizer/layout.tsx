@@ -26,10 +26,23 @@ export default function OrganizerLayout({
     return null; // Prevent hydration mismatch and hide protected content
   }
 
-  const handleLogout = () => {
-    // In a real app, you might also want to call the backend logout endpoint
-    clearAuth();
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      const { refreshToken } = useAuthStore.getState();
+      if (refreshToken) {
+        // We'll import authApi dynamically or just use fetch to avoid circular deps if any
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8123/api/v1"}/auth/logout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken })
+        });
+      }
+    } catch (e) {
+      // Ignore errors on logout
+    } finally {
+      clearAuth();
+      router.push("/login");
+    }
   };
 
   return (

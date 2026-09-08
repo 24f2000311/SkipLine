@@ -47,7 +47,11 @@ export default function QueueDetailsPage() {
   }
 
   const handleStatusChange = (newStatus: "OPEN" | "PAUSED" | "CLOSED") => {
-    updateQueue({ id: queueId, data: { status: newStatus } });
+    updateQueue({ id: queueId, data: { status: newStatus } }, {
+      onError: (err: any) => {
+        alert(err.message || `Failed to update queue status to ${newStatus}`);
+      }
+    });
   };
 
   return (

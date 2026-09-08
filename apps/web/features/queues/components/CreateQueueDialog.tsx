@@ -104,11 +104,9 @@ export function CreateQueueDialog({ eventId }: CreateQueueDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <PlusCircle className="h-4 w-4" />
-          Create Queue
-        </Button>
+      <DialogTrigger render={<Button className="gap-2" />}>
+        <PlusCircle className="h-4 w-4" />
+        Create Queue
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>

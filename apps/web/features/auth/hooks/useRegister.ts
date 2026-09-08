@@ -23,7 +23,7 @@ export const useRegister = () => {
     onSuccess: (data) => {
       // Set the auth store with the newly logged in user
       if (data.tokens?.accessToken && data.user) {
-        setAuth(data.user, data.tokens.accessToken);
+        setAuth(data.user, data.tokens.accessToken, data.tokens.refreshToken);
         router.push("/organizer/dashboard");
       }
     },

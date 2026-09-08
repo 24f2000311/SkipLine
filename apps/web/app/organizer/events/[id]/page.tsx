@@ -1,9 +1,9 @@
 "use client";
 
-import { useEvent } from "@/features/events/hooks/useEvents";
-import { useParams } from "next/navigation";
+import { useEvent, useDeleteEvent, useUpdateEvent } from "@/features/events/hooks/useEvents";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Clock, Trash2, Play, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -13,8 +13,32 @@ import { CreateQueueDialog } from "@/features/queues/components/CreateQueueDialo
 export default function EventDetailsPage() {
   const params = useParams();
   const id = params.id as string;
+  const router = useRouter();
   const { data: event, isLoading: isLoadingEvent, error: eventError } = useEvent(id);
   const { data: queues, isLoading: isLoadingQueues } = useQueues(id);
+  const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent();
+  const { mutate: updateEvent, isPending: isUpdating } = useUpdateEvent();
+
+  const handleUpdateStatus = (newStatus: string) => {
+    updateEvent({ id, data: { status: newStatus } }, {
+      onError: (err: any) => {
+        alert(err.message || `Failed to update event status to ${newStatus}`);
+      }
+    });
+  };
+
+  const handleDeleteEvent = () => {
+    if (confirm("Are you sure you want to delete this event? All associated queues and entries will also be deleted.")) {
+      deleteEvent(id, {
+        onSuccess: () => {
+          router.push("/organizer/dashboard");
+        },
+        onError: (err: any) => {
+          alert(err.message || "Failed to delete event");
+        }
+      });
+    }
+  };
 
   if (isLoadingEvent) {
     return (
@@ -38,39 +62,90 @@ export default function EventDetailsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <Link href="/organizer/dashboard">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-            {event.name}
-          </h1>
-          <div className="flex items-center gap-4 mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            <div className="flex items-center gap-1.5">
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider ${
-                event.status === 'LIVE' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                event.status === 'DRAFT' ? 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300' :
-                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-              }`}>
-                {event.status}
-              </span>
-            </div>
-            {event.venue && (
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/organizer/dashboard">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+              {event.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-zinc-500 dark:text-zinc-400">
               <div className="flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <span>{event.venue}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider ${
+                  event.status === 'LIVE' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                  event.status === 'DRAFT' ? 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300' :
+                  'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                }`}>
+                  {event.status}
+                </span>
               </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4 shrink-0" />
-              <span>
-                {new Date(event.startAt).toLocaleString()} - {new Date(event.endAt).toLocaleString()}
-              </span>
+              {event.venue && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span>{event.venue}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 shrink-0" />
+                <span>
+                  {new Date(event.startAt).toLocaleString()} - {new Date(event.endAt).toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-auto mt-4 sm:mt-0">
+          {event.status === 'DRAFT' && (
+            <Button 
+              variant="outline" 
+              onClick={() => handleUpdateStatus('LIVE')} 
+              disabled={isUpdating}
+              className="gap-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-900/50 dark:text-green-400 dark:hover:bg-green-900/40"
+            >
+              <Play className="h-4 w-4" />
+              {isUpdating ? "Updating..." : "Publish Event"}
+            </Button>
+          )}
+          {event.status === 'LIVE' && (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => handleUpdateStatus('COMPLETED')} 
+                disabled={isUpdating}
+                className="gap-2"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Complete Event
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (confirm("Are you sure you want to cancel this event? Customers will no longer be able to join.")) {
+                    handleUpdateStatus('CANCELLED');
+                  }
+                }} 
+                disabled={isUpdating}
+                className="gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+              >
+                <XCircle className="h-4 w-4" />
+                Cancel Event
+              </Button>
+            </>
+          )}
+          <Button 
+            variant="destructive" 
+            onClick={handleDeleteEvent} 
+            disabled={isDeleting}
+            className="gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            {isDeleting ? "Deleting..." : "Delete Event"}
+          </Button>
         </div>
       </div>
 

@@ -32,10 +32,8 @@ export function ShareQrDialog({ queueId, queueName }: ShareQrDialogProps) {
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <QrCode className="h-4 w-4" /> Share QR
-        </Button>
+      <DialogTrigger render={<Button variant="outline" className="gap-2" />}>
+        <QrCode className="h-4 w-4" /> Share QR
       </DialogTrigger>
       <DialogContent className="sm:max-w-md text-center">
         <DialogHeader>

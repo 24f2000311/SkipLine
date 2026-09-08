@@ -54,7 +54,7 @@ export default function CreateEventPage() {
     createEvent(data, {
       onSuccess: (response) => {
         // Redirect to the event details page
-        router.push(`/organizer/events/${response.data.id}`);
+        router.push(`/organizer/events/${response?.data?.id || response?.id}`);
       },
       onError: (err: any) => {
         setServerError(err.message || "An error occurred while creating the event");

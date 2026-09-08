@@ -15,7 +15,7 @@ export const useLogin = () => {
     onSuccess: (data) => {
       // data contains { user, tokens: { accessToken, refreshToken } } based on backend
       if (data.tokens?.accessToken && data.user) {
-        setAuth(data.user, data.tokens.accessToken);
+        setAuth(data.user, data.tokens.accessToken, data.tokens.refreshToken);
         router.push("/organizer/dashboard");
       }
     },
