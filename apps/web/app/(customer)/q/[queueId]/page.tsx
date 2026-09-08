@@ -3,6 +3,7 @@
 import { usePublicQueue } from "@/features/queues/hooks/useQueues";
 import { useJoinQueue, useCustomerStatus, useLeaveQueue } from "@/features/customer/hooks/useCustomerQueue";
 import { useCustomerStore } from "@/features/customer/stores/useCustomerStore";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
@@ -15,6 +16,8 @@ import { Clock, Users, ArrowRight, XCircle, Activity, MapPin, Ticket } from "luc
 export default function CustomerQueuePage() {
   const params = useParams();
   const queueId = params.queueId as string;
+  
+  useWebSocket(queueId);
   
   const { data: queue, isLoading: isLoadingQueue, error: queueError } = usePublicQueue(queueId);
   const { data: status, isLoading: isLoadingStatus } = useCustomerStatus(queueId);

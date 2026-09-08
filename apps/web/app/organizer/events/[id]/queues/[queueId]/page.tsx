@@ -4,6 +4,7 @@ import { useQueue, useUpdateQueue } from "@/features/queues/hooks/useQueues";
 import { useCallNext } from "@/features/queue-entries/hooks/useQueueEntries";
 import { QueueEntriesTable } from "@/features/queue-entries/components/QueueEntriesTable";
 import { ShareQrDialog } from "@/features/queues/components/ShareQrDialog";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Users, Settings, Play, Pause, Square, Megaphone } from "lucide-react";
@@ -21,6 +22,8 @@ export default function QueueDetailsPage() {
   const params = useParams();
   const eventId = params.id as string;
   const queueId = params.queueId as string;
+  
+  useWebSocket(queueId);
   
   const { data: queue, isLoading, error } = useQueue(queueId);
   const { mutate: updateQueue, isPending: isUpdating } = useUpdateQueue();
