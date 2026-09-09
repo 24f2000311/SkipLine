@@ -3,12 +3,13 @@
 import { useEvent, useDeleteEvent, useUpdateEvent } from "@/features/events/hooks/useEvents";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, Clock, Trash2, Play, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Trash2, Play, CheckCircle2, XCircle, Plus, SearchX, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
 import { useQueues } from "@/features/queues/hooks/useQueues";
 import { CreateQueueDialog } from "@/features/queues/components/CreateQueueDialog";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useState } from "react";
 
 export default function EventDetailsPage() {
   const params = useParams();
@@ -21,193 +22,290 @@ export default function EventDetailsPage() {
 
   const handleUpdateStatus = (newStatus: string) => {
     updateEvent({ id, data: { status: newStatus } }, {
-      onError: (err: any) => {
-        alert(err.message || `Failed to update event status to ${newStatus}`);
+      onError: () => {
+        alert("Something went wrong while updating the event. Please try again.");
       }
     });
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
   const handleDeleteEvent = () => {
-    if (confirm("Are you sure you want to delete this event? All associated queues and entries will also be deleted.")) {
-      deleteEvent(id, {
-        onSuccess: () => {
-          router.push("/organizer/dashboard");
-        },
-        onError: (err: any) => {
-          alert(err.message || "Failed to delete event");
-        }
-      });
-    }
+    deleteEvent(id, {
+      onSuccess: () => {
+        setShowDeleteConfirm(false);
+        router.push("/organizer/dashboard");
+      },
+      onError: () => alert("Something went wrong while deleting the event. Please try again.")
+    });
   };
 
   if (isLoadingEvent) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="h-48 w-full rounded-xl" />
+      <div className="space-y-6 animate-sl-fade-in max-w-6xl mx-auto">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (eventError || !event) {
+    const isNotFound = (eventError as any)?.response?.status === 404 || !event;
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4">
-        <p className="text-red-500">Event not found.</p>
-        <Link href="/organizer/dashboard">
-          <Button variant="outline">Back to Dashboard</Button>
-        </Link>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4 animate-sl-fade-in">
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${isNotFound ? 'bg-slate-100 dark:bg-slate-900 text-slate-400' : 'bg-red-50 dark:bg-red-900/20 text-sl-error'}`}>
+          {isNotFound ? <SearchX className="h-8 w-8" /> : <AlertCircle className="h-8 w-8" />}
+        </div>
+        <h2 className="text-2xl font-black text-foreground tracking-tight">
+          {isNotFound ? "Event not found" : "Something went wrong"}
+        </h2>
+        <p className="text-muted-foreground font-medium max-w-sm mb-4">
+          {isNotFound 
+            ? "That event may have been removed or you may not have access to it." 
+            : "We couldn't load this event. Please try again."}
+        </p>
+        {isNotFound ? (
+          <Link href="/organizer/dashboard">
+            <Button className="font-bold">Back to Dashboard</Button>
+          </Link>
+        ) : (
+          <Button variant="outline" className="font-bold" onClick={() => window.location.reload()}>Try Again</Button>
+        )}
       </div>
     );
   }
 
+  const isLive = event.status === 'LIVE';
+  const isDraft = event.status === 'DRAFT';
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/organizer/dashboard">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-              {event.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+    <div className="space-y-8 max-w-6xl mx-auto pb-12">
+      
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-border">
+        
+        {/* Left: Metadata */}
+        <div>
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground mb-3">
+            <Link href="/organizer/dashboard" className="hover:text-foreground transition-colors flex items-center gap-1">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Dashboard
+            </Link>
+            <span className="opacity-50">/</span>
+            <span className="text-foreground line-clamp-1 max-w-[200px]">{event.name}</span>
+          </nav>
+          
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-4">
+            {event.name}
+          </h1>
+          
+          <div className="flex flex-wrap items-center gap-4 text-[13px] font-medium text-slate-500 dark:text-slate-400">
+            <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
+              isLive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' :
+              isDraft ? 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700' :
+              'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700'
+            }`}>
+              {event.status}
+            </span>
+
+            {event.venue && (
               <div className="flex items-center gap-1.5">
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider ${
-                  event.status === 'LIVE' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                  event.status === 'DRAFT' ? 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300' :
-                  'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                }`}>
-                  {event.status}
-                </span>
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span>{event.venue}</span>
               </div>
-              {event.venue && (
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 shrink-0" />
-                  <span>{event.venue}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 shrink-0" />
-                <span>
-                  {new Date(event.startAt).toLocaleString()} - {new Date(event.endAt).toLocaleString()}
-                </span>
-              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4 shrink-0" />
+              <span>
+                {new Date(event.startAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} 
+                <span className="mx-1 opacity-50">→</span> 
+                {new Date(event.endAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </span>
             </div>
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-auto mt-4 sm:mt-0">
-          {event.status === 'DRAFT' && (
+        {/* Right: Lifecycle Controls */}
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {isDraft && (
             <Button 
-              variant="outline" 
               onClick={() => handleUpdateStatus('LIVE')} 
               disabled={isUpdating}
-              className="gap-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-900/50 dark:text-green-400 dark:hover:bg-green-900/40"
+              className="gap-2 bg-sl-blue hover:bg-blue-700 font-bold shadow-sm flex-1 md:flex-none"
             >
               <Play className="h-4 w-4" />
-              {isUpdating ? "Updating..." : "Publish Event"}
+              {isUpdating ? "Updating..." : "Start Event"}
             </Button>
           )}
-          {event.status === 'LIVE' && (
-            <>
+          
+          {isLive && (
+            <Button 
+              onClick={() => handleUpdateStatus('COMPLETED')} 
+              disabled={isUpdating}
+              className="gap-2 bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 font-bold flex-1 md:flex-none"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Complete Event
+            </Button>
+          )}
+
+          {/* Secondary Actions Menu/Group */}
+          <div className="flex gap-2 w-full md:w-auto">
+            {isLive && (
               <Button 
                 variant="outline" 
-                onClick={() => handleUpdateStatus('COMPLETED')} 
+                onClick={() => setShowCancelConfirm(true)}
                 disabled={isUpdating}
-                className="gap-2"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Complete Event
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  if (confirm("Are you sure you want to cancel this event? Customers will no longer be able to join.")) {
-                    handleUpdateStatus('CANCELLED');
-                  }
-                }} 
-                disabled={isUpdating}
-                className="gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                className="gap-2 text-slate-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors flex-1 md:flex-none"
               >
                 <XCircle className="h-4 w-4" />
-                Cancel Event
+                Cancel
               </Button>
-            </>
-          )}
-          <Button 
-            variant="destructive" 
-            onClick={handleDeleteEvent} 
-            disabled={isDeleting}
-            className="gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            {isDeleting ? "Deleting..." : "Delete Event"}
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Queues</h2>
-              <CreateQueueDialog eventId={id} />
-            </div>
-            
-            {isLoadingQueues ? (
-              <div className="space-y-4">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-              </div>
-            ) : !queues || queues.length === 0 ? (
-              <div className="border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg p-8 text-center text-zinc-500">
-                No queues created yet. Create one to start managing customers!
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {queues.map((queue: any) => (
-                  <div key={queue.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                    <div>
-                      <h3 className="font-semibold text-zinc-900 dark:text-white">{queue.name}</h3>
-                      <div className="flex items-center gap-3 mt-1 text-sm text-zinc-500">
-                        <span className={`font-medium ${
-                          queue.status === 'OPEN' ? 'text-green-600 dark:text-green-400' :
-                          queue.status === 'PAUSED' ? 'text-yellow-600 dark:text-yellow-400' :
-                          'text-red-600 dark:text-red-400'
-                        }`}>
-                          {queue.status}
-                        </span>
-                        <span>•</span>
-                        <span>{queue.priorityPolicy}</span>
-                        {queue.maxCapacity && (
-                          <>
-                            <span>•</span>
-                            <span>Cap: {queue.maxCapacity}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <Link href={`/organizer/events/${id}/queues/${queue.id}`} className="mt-4 sm:mt-0">
-                      <Button variant="secondary" size="sm">Manage</Button>
-                    </Link>
-                  </div>
-                ))}
-              </div>
             )}
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteConfirm(true)} 
+              disabled={isDeleting}
+              className="gap-2 text-slate-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors flex-1 md:flex-none"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
           </div>
         </div>
+      </div>
+      
+      <ConfirmDialog 
+        isOpen={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Event"
+        description="Are you sure you want to delete this event? All associated queues and entries will also be deleted. This cannot be undone."
+        onConfirm={handleDeleteEvent}
+        isPending={isDeleting}
+        confirmText="Yes, delete event"
+      />
+      
+      <ConfirmDialog 
+        isOpen={showCancelConfirm}
+        onOpenChange={setShowCancelConfirm}
+        title="Cancel Event"
+        description="Are you sure you want to cancel this event? Customers will no longer be able to join any queues."
+        onConfirm={() => {
+          handleUpdateStatus('CANCELLED');
+          setShowCancelConfirm(false);
+        }}
+        isPending={isUpdating}
+        confirmText="Yes, cancel event"
+      />
 
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
-            <h3 className="font-semibold text-zinc-900 dark:text-white mb-4">About this Event</h3>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        
+        {/* LEFT COLUMN: Queues */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Queues</h2>
+              <p className="text-sm font-medium text-muted-foreground mt-0.5">Manage the lines running at this event.</p>
+            </div>
+            {queues && queues.length > 0 && (
+              <CreateQueueDialog eventId={id} />
+            )}
+          </div>
+          
+          {isLoadingQueues ? (
+            <div className="space-y-4">
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+            </div>
+          ) : !queues || queues.length === 0 ? (
+            
+            /* High-value Empty Queue State */
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center animate-sl-fade-in flex flex-col items-center">
+              <div className="h-14 w-14 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center mb-5 shadow-sm">
+                <Plus className="h-6 w-6 text-sl-blue" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground">No queues yet</h3>
+              <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto font-medium">
+                Create a queue for this event to start accepting customers and managing wait times.
+              </p>
+              <div className="mt-6">
+                <CreateQueueDialog eventId={id} />
+              </div>
+            </div>
+
+          ) : (
+            <div className="space-y-8">
+              {['OPEN', 'PAUSED', 'CLOSED'].map((queueStatus) => {
+                const filteredQueues = queues.filter((q: any) => q.status === queueStatus);
+                if (filteredQueues.length === 0) return null;
+
+                return (
+                  <div key={queueStatus} className="space-y-3 animate-sl-fade-in">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                      {queueStatus === 'OPEN' && (
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      )}
+                      {queueStatus} Queues
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      {filteredQueues.map((queue: any) => {
+                        const isOpen = queueStatus === 'OPEN';
+                        const currentEntries = queue._count?.entries || 0;
+                        
+                        return (
+                          <div 
+                            key={queue.id} 
+                            className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 rounded-xl border transition-all ${
+                              isOpen 
+                                ? 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md' 
+                                : 'bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/50 opacity-80'
+                            }`}
+                          >
+                            <div>
+                              <h3 className={`font-bold text-lg mb-1 ${isOpen ? 'text-foreground' : 'text-slate-600 dark:text-slate-400'}`}>
+                                {queue.name}
+                              </h3>
+                              <p className={`font-medium mb-2 ${isOpen ? 'text-sl-blue dark:text-blue-400' : 'text-slate-500'}`}>
+                                {currentEntries} {queue.maxCapacity ? `/ ${queue.maxCapacity}` : ''} people in line
+                              </p>
+                              <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
+                                <span className="bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded text-slate-600 dark:text-slate-300">
+                                  {queue.priorityPolicy === "FIFO" ? "First Come, First Served" : "Priority Queue"}
+                                </span>
+                              </div>
+                            </div>
+                            <Link href={`/organizer/events/${id}/queues/${queue.id}`} className="mt-4 sm:mt-0 w-full sm:w-auto">
+                              <Button variant={isOpen ? 'default' : 'secondary'} size="sm" className={`w-full font-bold h-9 ${isOpen ? 'bg-sl-blue text-white hover:bg-blue-700 shadow-sm' : ''}`}>
+                                {isOpen ? 'Open Queue' : 'Manage Queue'}
+                              </Button>
+                            </Link>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: About Section */}
+        <div className="lg:col-span-1">
+          <div className="bg-slate-50/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+            <h3 className="text-sm font-bold text-foreground mb-3 uppercase tracking-wider">About this Event</h3>
+            <p className="text-[13px] font-medium text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
               {event.description || "No description provided."}
             </p>
           </div>
         </div>
+
       </div>
     </div>
   );

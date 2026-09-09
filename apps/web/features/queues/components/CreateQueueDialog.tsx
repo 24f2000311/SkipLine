@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateQueue } from "@/features/queues/hooks/useQueues";
-import { PlusCircle, Settings2 } from "lucide-react";
+import { PlusCircle, Settings2, Users, Star } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,13 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const queueSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -104,111 +97,163 @@ export function CreateQueueDialog({ eventId }: CreateQueueDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button className="gap-2" />}>
+      <DialogTrigger render={<Button className="gap-2 font-bold shadow-sm h-10 bg-sl-blue hover:bg-blue-700 text-white" />}>
         <PlusCircle className="h-4 w-4" />
         Create Queue
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Queue</DialogTitle>
-          <DialogDescription>
-            Add a new queue to this event. You can configure the priority algorithm below.
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-0 gap-0 border-slate-200 dark:border-slate-800 rounded-2xl">
+        <DialogHeader className="px-6 py-5 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/20">
+          <DialogTitle className="text-xl font-extrabold text-foreground">Create a queue</DialogTitle>
+          <DialogDescription className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+            Set up a queue for your event in seconds.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-8">
+          
+          {/* Queue Details section */}
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Queue Name <span className="text-red-500">*</span></Label>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2">Queue Details</h3>
+            
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Queue Name <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="name"
-                placeholder="e.g. VIP Entrance, Main Stage"
+                placeholder="e.g. Main Entrance, VIP Access"
                 {...register("name")}
-                className={errors.name ? "border-red-500" : ""}
+                className={`h-11 ${errors.name ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-sl-blue"}`}
+                aria-invalid={!!errors.name}
               />
               {errors.name && (
-                <p className="text-sm text-red-500 font-medium">{errors.name.message}</p>
+                <p role="alert" className="text-[13px] font-medium text-red-500 mt-1">{errors.name.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="description" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Description
+              </Label>
               <Input
                 id="description"
                 placeholder="Optional details about this queue"
                 {...register("description")}
+                className="h-11 focus-visible:ring-sl-blue"
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="priorityPolicy">Priority Policy</Label>
-                <Select 
-                  value={selectedPolicy} 
-                  onValueChange={(value: any) => setValue("priorityPolicy", value)}
+          <div className="h-px bg-slate-100 dark:bg-slate-800" />
+
+          {/* Capacity & Scheduling section */}
+          <div className="space-y-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2">Rules & Capacity</h3>
+            
+            <div className="space-y-1.5">
+              <Label htmlFor="maxCapacity" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Maximum people in queue
+              </Label>
+              <Input
+                id="maxCapacity"
+                type="number"
+                placeholder="Unlimited"
+                {...register("maxCapacity")}
+                className="h-11 focus-visible:ring-sl-blue"
+              />
+              <p className="text-[13px] font-medium text-slate-500">
+                Once the queue reaches this limit, new customers cannot join until space becomes available.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Priority Policy
+              </Label>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* FIFO Card */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValue("priorityPolicy", "FIFO");
+                    setShowAdvanced(false);
+                  }}
+                  className={`flex flex-col items-start p-4 border rounded-xl text-left transition-all ${
+                    selectedPolicy === "FIFO" 
+                      ? "bg-blue-50/50 border-sl-blue ring-1 ring-sl-blue dark:bg-blue-900/10 dark:border-blue-500 dark:ring-blue-500" 
+                      : "bg-white border-slate-200 hover:border-slate-300 dark:bg-slate-950 dark:border-slate-800 dark:hover:border-slate-700"
+                  }`}
                 >
-                  <SelectTrigger id="priorityPolicy">
-                    <SelectValue placeholder="Select policy" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FIFO">Standard (FIFO)</SelectItem>
-                    <SelectItem value="WEIGHTED_PRIORITY">Weighted Priority</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Users className={`h-4 w-4 ${selectedPolicy === "FIFO" ? "text-sl-blue dark:text-blue-400" : "text-slate-500"}`} />
+                    <span className={`font-bold text-sm ${selectedPolicy === "FIFO" ? "text-sl-blue dark:text-blue-400" : "text-slate-700 dark:text-slate-300"}`}>
+                      First Come, First Served
+                    </span>
+                  </div>
+                  <span className="text-[12px] font-medium text-slate-500 leading-tight">
+                    Everyone is served based on when they joined.
+                  </span>
+                </button>
 
-              <div className="space-y-2">
-                <Label htmlFor="maxCapacity">Max Capacity</Label>
-                <Input
-                  id="maxCapacity"
-                  type="number"
-                  placeholder="Unlimited"
-                  {...register("maxCapacity")}
-                />
+                {/* Weighted Priority Card */}
+                <button
+                  type="button"
+                  onClick={() => setValue("priorityPolicy", "WEIGHTED_PRIORITY")}
+                  className={`flex flex-col items-start p-4 border rounded-xl text-left transition-all ${
+                    selectedPolicy === "WEIGHTED_PRIORITY" 
+                      ? "bg-blue-50/50 border-sl-blue ring-1 ring-sl-blue dark:bg-blue-900/10 dark:border-blue-500 dark:ring-blue-500" 
+                      : "bg-white border-slate-200 hover:border-slate-300 dark:bg-slate-950 dark:border-slate-800 dark:hover:border-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Star className={`h-4 w-4 ${selectedPolicy === "WEIGHTED_PRIORITY" ? "text-sl-blue dark:text-blue-400" : "text-slate-500"}`} />
+                    <span className={`font-bold text-sm ${selectedPolicy === "WEIGHTED_PRIORITY" ? "text-sl-blue dark:text-blue-400" : "text-slate-700 dark:text-slate-300"}`}>
+                      Priority Queue
+                    </span>
+                  </div>
+                  <span className="text-[12px] font-medium text-slate-500 leading-tight">
+                    Priority customers can move ahead while preventing starvation.
+                  </span>
+                </button>
               </div>
             </div>
 
-            {/* Advanced Settings Toggle */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-              >
-                <Settings2 className="h-4 w-4" />
-                {showAdvanced ? "Hide Advanced Settings" : "Show Advanced Settings"}
-              </button>
-            </div>
+            {/* Advanced Settings for Priority */}
+            {(selectedPolicy === "WEIGHTED_PRIORITY") && (
+              <div className="pt-2 animate-sl-fade-in">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  <Settings2 className="h-4 w-4" />
+                  {showAdvanced ? "Hide Advanced Algorithm Configuration" : "Show Advanced Algorithm Configuration"}
+                </button>
 
-            {/* Advanced Settings Panel */}
-            {showAdvanced && (
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-4">
-                <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Algorithm Configuration</h4>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="estimatedServiceTime">Estimated Service Time (mins)</Label>
-                  <Input
-                    id="estimatedServiceTime"
-                    type="number"
-                    {...register("estimatedServiceTime")}
-                  />
-                  <p className="text-xs text-zinc-500">Used to calculate ETA for customers.</p>
-                </div>
+                {showAdvanced && (
+                  <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800/60 space-y-5 animate-sl-fade-in">
+                    
+                    <div className="space-y-1.5">
+                      <Label htmlFor="estimatedServiceTime" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estimated Service Time (mins)</Label>
+                      <Input id="estimatedServiceTime" type="number" className="h-10 bg-white dark:bg-slate-950" {...register("estimatedServiceTime")} />
+                      <p className="text-[12px] font-medium text-slate-500">Used to calculate ETA for customers.</p>
+                    </div>
 
-                {(selectedPolicy === "WEIGHTED_PRIORITY") && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="vipWeight">VIP Weight</Label>
-                      <Input id="vipWeight" type="number" {...register("vipWeight")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="normalWeight">Normal Weight</Label>
-                      <Input id="normalWeight" type="number" {...register("normalWeight")} />
-                    </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="maxVipStreak">Max VIP Streak</Label>
-                      <Input id="maxVipStreak" type="number" {...register("maxVipStreak")} />
-                      <p className="text-xs text-zinc-500">Prevents normal users from starving.</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="vipWeight" className="text-sm font-semibold text-slate-700 dark:text-slate-300">VIP Weight</Label>
+                        <Input id="vipWeight" type="number" className="h-10 bg-white dark:bg-slate-950" {...register("vipWeight")} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="normalWeight" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Normal Weight</Label>
+                        <Input id="normalWeight" type="number" className="h-10 bg-white dark:bg-slate-950" {...register("normalWeight")} />
+                      </div>
+                      <div className="space-y-1.5 col-span-2">
+                        <Label htmlFor="maxVipStreak" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Max VIP Streak</Label>
+                        <Input id="maxVipStreak" type="number" className="h-10 bg-white dark:bg-slate-950" {...register("maxVipStreak")} />
+                        <p className="text-[12px] font-medium text-slate-500">Forces normal queue progress after this many consecutive VIP calls.</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -217,16 +262,16 @@ export function CreateQueueDialog({ eventId }: CreateQueueDialogProps) {
           </div>
 
           {serverError && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-500 text-sm rounded-md border border-red-200 dark:border-red-900/50">
+            <div role="alert" className="p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg border border-red-100 dark:border-red-900/50">
               {serverError}
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="ghost" type="button" onClick={() => setOpen(false)} className="font-semibold text-slate-600 hover:text-slate-900">
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending} className="font-bold bg-sl-blue hover:bg-blue-700 text-white px-6">
               {isPending ? "Creating..." : "Create Queue"}
             </Button>
           </div>

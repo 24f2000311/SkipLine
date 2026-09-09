@@ -41,7 +41,6 @@ export const useCustomerStatus = (queueId: string) => {
 
 export const useLeaveQueue = () => {
   const queryClient = useQueryClient();
-  const clearEntry = useCustomerStore((state) => state.clearEntry);
 
   return useMutation({
     mutationFn: async ({ queueId, entryId, token }: { queueId: string; entryId: string; token: string }) => {
@@ -49,7 +48,6 @@ export const useLeaveQueue = () => {
       return response.data;
     },
     onSuccess: (_, variables) => {
-      clearEntry(variables.queueId);
       queryClient.invalidateQueries({ queryKey: ["customer-status", variables.entryId] });
     },
   });

@@ -29,10 +29,7 @@ describe('Duplicate Actions (Disabled Buttons)', () => {
   );
 
   it('disables "Start Serving" button when mutation is pending', () => {
-    vi.mocked(useQueueEntries.useActiveEntries).mockReturnValue({
-      data: [{ id: '1', status: 'CALLED', sequenceNumber: 1, customerName: 'Test' }],
-      isLoading: false,
-    } as any);
+    const mockEntries = [{ id: '1', status: 'CALLED', sequenceNumber: 1, customerName: 'Test' }];
 
     // Mock start serving as pending
     vi.mocked(useQueueEntries.useStartServing).mockReturnValue({
@@ -43,17 +40,14 @@ describe('Duplicate Actions (Disabled Buttons)', () => {
     vi.mocked(useQueueEntries.useCompleteService).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
     vi.mocked(useQueueEntries.useNoShow).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
 
-    render(<QueueEntriesTable queueId="queue-123" />, { wrapper });
+    render(<QueueEntriesTable queueId="queue-123" entries={mockEntries} isLoading={false} error={null} />, { wrapper });
 
     const startButton = screen.getByText('Start Serving');
     expect(startButton.hasAttribute('disabled')).toBe(true);
   });
 
   it('disables "Complete" button when mutation is pending', () => {
-    vi.mocked(useQueueEntries.useActiveEntries).mockReturnValue({
-      data: [{ id: '1', status: 'SERVING', sequenceNumber: 1, customerName: 'Test' }],
-      isLoading: false,
-    } as any);
+    const mockEntries = [{ id: '1', status: 'SERVING', sequenceNumber: 1, customerName: 'Test' }];
 
     vi.mocked(useQueueEntries.useStartServing).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
     
@@ -65,17 +59,14 @@ describe('Duplicate Actions (Disabled Buttons)', () => {
     
     vi.mocked(useQueueEntries.useNoShow).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
 
-    render(<QueueEntriesTable queueId="queue-123" />, { wrapper });
+    render(<QueueEntriesTable queueId="queue-123" entries={mockEntries} isLoading={false} error={null} />, { wrapper });
 
-    const completeButton = screen.getByText('Complete');
+    const completeButton = screen.getByText('Complete Service');
     expect(completeButton.hasAttribute('disabled')).toBe(true);
   });
 
-  it('disables "No-Show" button when mutation is pending', () => {
-    vi.mocked(useQueueEntries.useActiveEntries).mockReturnValue({
-      data: [{ id: '1', status: 'CALLED', sequenceNumber: 1, customerName: 'Test' }],
-      isLoading: false,
-    } as any);
+  it('disables "No Show" button when mutation is pending', () => {
+    const mockEntries = [{ id: '1', status: 'CALLED', sequenceNumber: 1, customerName: 'Test' }];
 
     vi.mocked(useQueueEntries.useStartServing).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
     vi.mocked(useQueueEntries.useCompleteService).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
@@ -86,9 +77,9 @@ describe('Duplicate Actions (Disabled Buttons)', () => {
       isPending: true,
     } as any);
 
-    render(<QueueEntriesTable queueId="queue-123" />, { wrapper });
+    render(<QueueEntriesTable queueId="queue-123" entries={mockEntries} isLoading={false} error={null} />, { wrapper });
 
-    const noShowButton = screen.getByText('No-Show');
+    const noShowButton = screen.getByText('No Show');
     expect(noShowButton.hasAttribute('disabled')).toBe(true);
   });
 });

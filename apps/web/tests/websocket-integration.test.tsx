@@ -19,9 +19,17 @@ vi.mock('../features/queues/hooks/useQueues', () => ({
   usePublicQueue: vi.fn().mockReturnValue({ data: { _count: { entries: 0 }, event: {} }, isLoading: false }),
 }));
 
-vi.mock('../features/queue-entries/hooks/useQueueEntries', () => ({
-  useCallNext: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
-}));
+vi.mock('../features/queue-entries/hooks/useQueueEntries', async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    useCallNext: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
+    useStartServing: vi.fn(),
+    useCompleteService: vi.fn(),
+    useNoShow: vi.fn(),
+    useActiveEntries: vi.fn().mockReturnValue({ data: [], isLoading: false, error: null }),
+  };
+});
 
 vi.mock('../features/customer/hooks/useCustomerQueue', () => ({
   useJoinQueue: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
