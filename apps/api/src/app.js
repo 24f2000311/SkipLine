@@ -84,6 +84,7 @@ import authRouter from "./modules/auth/auth.routes.js";
 app.use("/health", healthRouter);
 app.use("/api/v1", apiRouter);
 app.use("/api", apiRouter);
+app.use("/", authRouter);
 app.use("/auth", authRouter);
 
 import AppError from "./shared/errors/AppError.js";

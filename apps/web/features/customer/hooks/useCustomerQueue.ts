@@ -32,7 +32,8 @@ export const useCustomerStatus = (queueId: string, isEventEnded?: boolean) => {
     refetchInterval: (query) => {
       if (isEventEnded) return false;
       const data = query.state.data as any;
-      if (data?.entry?.status === "COMPLETED" || data?.entry?.status === "CANCELLED" || data?.entry?.status === "SKIPPED") {
+      const entryStatus = data?.entry?.status || data?.status;
+      if (entryStatus === "COMPLETED" || entryStatus === "CANCELLED" || entryStatus === "SKIPPED") {
         return false;
       }
       return 5000;

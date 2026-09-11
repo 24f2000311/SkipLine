@@ -28,6 +28,7 @@ vi.mock('../features/queue-entries/hooks/useQueueEntries', async (importOriginal
     useCompleteService: vi.fn(),
     useNoShow: vi.fn(),
     useActiveEntries: vi.fn().mockReturnValue({ data: [], isLoading: false, error: null }),
+    useAddWalkIn: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
   };
 });
 
@@ -81,7 +82,7 @@ describe('WebSocket Integration in Pages', () => {
       render(<CustomerQueuePage />);
       
       // Verify useWebSocket was called with the correct queueId
-      expect(useWebSocket).toHaveBeenCalledWith('queue-456');
+      expect(useWebSocket).toHaveBeenCalledWith('queue-456', expect.any(Boolean));
     });
   });
 });

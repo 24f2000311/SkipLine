@@ -15,9 +15,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
-  const { data: events, isLoading, error } = useEvents();
+  const { data: events, isLoading, isPending, error } = useEvents();
 
-  if (isLoading) {
+  if (isLoading || isPending) {
     return (
       <div className="space-y-8 animate-sl-fade-in max-w-6xl mx-auto">
         <div className="flex justify-between items-center">

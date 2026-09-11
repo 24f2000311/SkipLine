@@ -16,12 +16,12 @@ import { useState } from "react";
 
 export default function QueueDetailsPage() {
   const params = useParams();
-  const eventId = params.id as string;
-  const queueId = params.queueId as string;
+  const queueId = (params?.queueId as string) || "";
+  const eventId = (params?.id as string) || "";
   
   useWebSocket(queueId);
   
-  const { data: queue, isLoading: isLoadingQueue, error: queueError } = useQueue(queueId);
+  const { data: queue, isLoading: isLoadingQueue, isPending: isPendingQueue, error: queueError } = useQueue(queueId);
   const { data: entries = [], isLoading: isLoadingEntries } = useActiveEntries(queueId);
   
   const { mutate: updateQueue, isPending: isUpdating } = useUpdateQueue();
@@ -29,7 +29,7 @@ export default function QueueDetailsPage() {
 
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
-  if (isLoadingQueue) {
+  if (isLoadingQueue || isPendingQueue || !queueId) {
     return (
       <div className="space-y-6 animate-sl-fade-in max-w-5xl mx-auto">
         <Skeleton className="h-8 w-48" />
@@ -39,8 +39,8 @@ export default function QueueDetailsPage() {
     );
   }
 
-  if (queueError || !queue) {
-    const isNotFound = (queueError as any)?.response?.status === 404 || !queue;
+  if (queueError || (!queue && !isPendingQueue)) {
+    const isNotFound = (queueError as any)?.response?.status === 404 || (!queue && !queueError);
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4 animate-sl-fade-in">
@@ -80,8 +80,8 @@ export default function QueueDetailsPage() {
   const isClosed = queue.status === 'CLOSED';
   
   const now = new Date();
-  const isEventEnded = new Date(queue.event.endAt) <= now || queue.event.status === 'COMPLETED';
-  const isEventCancelled = queue.event.status === 'CANCELLED';
+  const isEventEnded = queue?.event ? (new Date(queue.event.endAt) <= now || queue.event.status === 'COMPLETED') : false;
+  const isEventCancelled = queue?.event?.status === 'CANCELLED';
   const isHistorical = isEventEnded || isEventCancelled;
 
   const waitingCount = entries.filter((e: any) => e.status === 'WAITING').length;

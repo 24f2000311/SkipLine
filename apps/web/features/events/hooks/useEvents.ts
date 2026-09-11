@@ -1,24 +1,32 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { eventApi } from "@/lib/api/events";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export const useEvents = () => {
+  const hasHydrated = useAuthStore((state) => state._hasHydrated);
+  const accessToken = useAuthStore((state) => state.accessToken);
+
   return useQuery({
     queryKey: ["events"],
     queryFn: async () => {
       const response = await eventApi.getAll();
       return response.data;
     },
+    enabled: hasHydrated && !!accessToken,
   });
 };
 
 export const useEvent = (id: string) => {
+  const hasHydrated = useAuthStore((state) => state._hasHydrated);
+  const accessToken = useAuthStore((state) => state.accessToken);
+
   return useQuery({
     queryKey: ["events", id],
     queryFn: async () => {
       const response = await eventApi.getOne(id);
       return response.data;
     },
-    enabled: !!id,
+    enabled: !!id && hasHydrated && !!accessToken,
   });
 };
 

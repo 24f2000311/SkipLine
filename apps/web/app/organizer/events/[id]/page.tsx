@@ -16,9 +16,9 @@ import { EditEventDialog } from "@/features/events/components/EditEventDialog";
 
 export default function EventDetailsPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = (params?.id as string) || "";
   const router = useRouter();
-  const { data: event, isLoading: isLoadingEvent, error: eventError } = useEvent(id);
+  const { data: event, isLoading: isLoadingEvent, isPending: isPendingEvent, error: eventError } = useEvent(id);
   const { data: queues, isLoading: isLoadingQueues } = useQueues(id);
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent();
   const { mutate: updateEvent, isPending: isUpdating } = useUpdateEvent();
@@ -47,7 +47,7 @@ export default function EventDetailsPage() {
     });
   };
 
-  if (isLoadingEvent) {
+  if (isLoadingEvent || isPendingEvent || !id) {
     return (
       <div className="space-y-6 animate-sl-fade-in max-w-6xl mx-auto">
         <Skeleton className="h-8 w-48" />
@@ -56,8 +56,8 @@ export default function EventDetailsPage() {
     );
   }
 
-  if (eventError || !event) {
-    const isNotFound = (eventError as any)?.response?.status === 404 || !event;
+  if (eventError || (!event && !isPendingEvent)) {
+    const isNotFound = (eventError as any)?.response?.status === 404 || (!event && !eventError);
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4 animate-sl-fade-in">

@@ -11,9 +11,33 @@ export const apiClient = axios.create({
   },
 });
 
+const getAuthHeader = (headers: any) => {
+  if (!headers) return undefined;
+  if (typeof headers.get === "function") {
+    return headers.get("Authorization") || headers.get("authorization");
+  }
+  return headers.Authorization || headers.authorization || headers["Authorization"] || headers["authorization"];
+};
+
 // Add a request interceptor to inject the token
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // If in browser and auth store hasn't hydrated yet, wait briefly for hydration (up to 150ms)
+    if (typeof window !== "undefined" && !useAuthStore.getState()._hasHydrated) {
+      await new Promise<void>((resolve) => {
+        const unsub = useAuthStore.subscribe((state) => {
+          if (state._hasHydrated) {
+            unsub();
+            resolve();
+          }
+        });
+        setTimeout(() => {
+          unsub();
+          resolve();
+        }, 150);
+      });
+    }
+
     const token = useAuthStore.getState().accessToken;
     if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -51,53 +75,49 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-      const authHeader = originalRequest.headers?.Authorization;
+      const authHeader = getAuthHeader(originalRequest.headers);
       const storeState = useAuthStore.getState();
       
-      // Only clear/refresh if the request was using the organizer's token
-      if (storeState.accessToken && authHeader === `Bearer ${storeState.accessToken}`) {
-        if (storeState.refreshToken) {
-          if (isRefreshing) {
-            try {
-              const token = await new Promise((resolve, reject) => {
-                failedQueue.push({ resolve, reject });
-              });
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return apiClient(originalRequest);
-            } catch (err) {
-              return Promise.reject(err);
-            }
-          }
-
-          originalRequest._retry = true;
-          isRefreshing = true;
-
+      // Only clear/refresh if the request was authenticated or we have a refresh token
+      if (storeState.refreshToken && (authHeader || storeState.accessToken)) {
+        if (isRefreshing) {
           try {
-            // Manually do a POST request to avoid recursive interceptors
-            const refreshRes = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-              refreshToken: storeState.refreshToken
+            const token = await new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
             });
-            
-            const newTokens = refreshRes.data.data;
-            
-            // Update store
-            if (storeState.user) {
-              storeState.setAuth(storeState.user, newTokens.accessToken, newTokens.refreshToken);
-            }
-            
-            processQueue(null, newTokens.accessToken);
-            
-            originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
+            originalRequest.headers.Authorization = `Bearer ${token}`;
             return apiClient(originalRequest);
-          } catch (refreshError) {
-            processQueue(refreshError, null);
-            storeState.clearAuth();
-          } finally {
-            isRefreshing = false;
+          } catch (err) {
+            return Promise.reject(err);
           }
-        } else {
-          // No refresh token available, just clear auth
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          // Robust refresh endpoint URL
+          const refreshUrl = `${API_BASE_URL.replace(/\/+$/, "")}/auth/refresh`;
+          const refreshRes = await axios.post(refreshUrl, {
+            refreshToken: storeState.refreshToken
+          });
+          
+          const newTokens = refreshRes.data?.data || refreshRes.data;
+          
+          // Update store
+          if (storeState.user && newTokens?.accessToken) {
+            storeState.setAuth(storeState.user, newTokens.accessToken, newTokens.refreshToken);
+          }
+          
+          processQueue(null, newTokens?.accessToken);
+          
+          originalRequest.headers.Authorization = `Bearer ${newTokens?.accessToken}`;
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          processQueue(refreshError, null);
           storeState.clearAuth();
+        } finally {
+          isRefreshing = false;
         }
       }
     }

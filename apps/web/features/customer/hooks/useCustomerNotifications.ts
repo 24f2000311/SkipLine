@@ -42,8 +42,8 @@ const playTone = (type: "calm" | "urgent") => {
 };
 
 export const useCustomerNotifications = (queueId: string, status: any) => {
-  const { entries, updateNotificationState } = useCustomerStore();
-  const entryState = entries[queueId];
+  const entryState = useCustomerStore((state) => (state?.entries ? state.entries[queueId] : undefined));
+  const updateNotificationState = useCustomerStore((state) => state?.updateNotificationState);
 
   useEffect(() => {
     if (!status || !entryState) return;

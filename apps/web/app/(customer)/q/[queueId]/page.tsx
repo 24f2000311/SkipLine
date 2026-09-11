@@ -18,9 +18,9 @@ import { Clock, Users, ArrowRight, XCircle, MapPin, Ticket, CheckCircle2, UserCi
 
 export default function CustomerQueuePage() {
   const params = useParams();
-  const queueId = params.queueId as string;
+  const queueId = (params?.queueId as string) || "";
   
-  const { data: queue, isLoading: isLoadingQueue, error: queueError } = usePublicQueue(queueId);
+  const { data: queue, isLoading: isLoadingQueue, isPending: isPendingQueue, error: queueError } = usePublicQueue(queueId);
   const now = new Date();
   const isEventEnded = queue && (new Date(queue.event.endAt) <= now || queue.event.status === 'COMPLETED');
   const isEventCancelled = queue && queue.event.status === 'CANCELLED';
@@ -65,7 +65,7 @@ export default function CustomerQueuePage() {
     setShowLeaveConfirm(false);
   };
 
-  if (isLoadingQueue) {
+  if (isLoadingQueue || isPendingQueue || !queueId) {
     return (
       <div className="min-h-screen bg-sl-surface flex items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-4">
@@ -76,8 +76,8 @@ export default function CustomerQueuePage() {
     );
   }
 
-  if (queueError || !queue) {
-    const isNotFound = (queueError as any)?.response?.status === 404 || !queue;
+  if (queueError || (!queue && !isPendingQueue)) {
+    const isNotFound = (queueError as any)?.response?.status === 404 || (!queue && !queueError);
     
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center p-4 text-center">
