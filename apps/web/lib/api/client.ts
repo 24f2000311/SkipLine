@@ -101,6 +101,12 @@ apiClient.interceptors.response.use(
         }
       }
     }
-    return Promise.reject(error.response?.data || error);
+    const apiError = error.response?.data?.error;
+    const message = apiError?.message || error.message || "An unexpected error occurred";
+    const customError = new Error(message);
+    (customError as any).code = apiError?.code;
+    (customError as any).status = error.response?.status;
+    (customError as any).response = error.response;
+    return Promise.reject(customError);
   }
 );

@@ -22,7 +22,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   phone: z.string().optional(),
 });
 
@@ -45,7 +45,11 @@ export default function RegisterPage() {
     setServerError(null);
     registerOrganizer(data, {
       onError: (err: any) => {
-        setServerError(err.message || "An account with this email already exists.");
+        const errorMsg =
+          err?.message ||
+          err?.response?.data?.error?.message ||
+          "Registration failed. Please check your details and try again.";
+        setServerError(errorMsg);
       },
     });
   };

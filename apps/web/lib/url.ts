@@ -21,7 +21,8 @@ export const getAppUrl = () => {
  */
 export const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+    const clean = process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/+$/, "");
+    return clean.endsWith("/api/v1") ? clean : `${clean}/api/v1`;
   }
 
   if (typeof window !== "undefined") {

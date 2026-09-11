@@ -33,7 +33,10 @@ const issueTokenPair = async (user) => {
 };
 
 export const registerOrganizer = async ({ name, email, password, phone }) => {
-  if (!name || !email || !password) {
+  const cleanEmail = email ? String(email).trim().toLowerCase() : "";
+  const cleanName = name ? String(name).trim() : "";
+
+  if (!cleanName || !cleanEmail || !password) {
     throw new AppError("Name, email, and password are required", 400, "MISSING_REQUIRED_FIELDS");
   }
 
@@ -41,7 +44,7 @@ export const registerOrganizer = async ({ name, email, password, phone }) => {
     throw new AppError("Password must be at least 8 characters long", 400, "WEAK_PASSWORD");
   }
 
-  const existingUser = await authRepository.findUserByEmail(email);
+  const existingUser = await authRepository.findUserByEmail(cleanEmail);
   if (existingUser) {
     throw new AppError("User with this email already exists", 409, "EMAIL_ALREADY_EXISTS");
   }
@@ -49,10 +52,10 @@ export const registerOrganizer = async ({ name, email, password, phone }) => {
   const passwordHash = await hashPassword(password);
 
   const user = await authRepository.createUser({
-    name,
-    email,
+    name: cleanName,
+    email: cleanEmail,
     passwordHash,
-    phone,
+    phone: phone ? String(phone).trim() : null,
   });
 
   const tokens = await issueTokenPair(user);
@@ -64,11 +67,13 @@ export const registerOrganizer = async ({ name, email, password, phone }) => {
 };
 
 export const loginOrganizer = async ({ email, password }) => {
-  if (!email || !password) {
+  const cleanEmail = email ? String(email).trim().toLowerCase() : "";
+
+  if (!cleanEmail || !password) {
     throw new AppError("Email and password are required", 400, "MISSING_REQUIRED_FIELDS");
   }
 
-  const user = await authRepository.findUserByEmail(email);
+  const user = await authRepository.findUserByEmail(cleanEmail);
   if (!user) {
     throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
   }

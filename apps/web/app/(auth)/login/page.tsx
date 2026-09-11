@@ -43,7 +43,11 @@ export default function LoginPage() {
     setServerError(null);
     login(data, {
       onError: (err: any) => {
-        setServerError(err.message || "Email or password is incorrect. Please try again.");
+        const errorMsg =
+          err?.message ||
+          err?.response?.data?.error?.message ||
+          "Email or password is incorrect. Please try again.";
+        setServerError(errorMsg);
       },
     });
   };
