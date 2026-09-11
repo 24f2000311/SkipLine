@@ -64,6 +64,21 @@ if (fs.existsSync(openApiPath)) {
   }));
 }
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    name: env.appName || "Skipline API",
+    version: env.appVersion || "1.0.0",
+    status: "healthy",
+    documentation: "/api-docs",
+    endpoints: {
+      healthLive: "/health/live",
+      healthReady: "/health/ready",
+      apiV1: "/api/v1",
+      websocket: "/ws",
+    },
+  });
+});
+
 app.use("/health", healthRouter);
 app.use("/api/v1", apiRouter);
 
