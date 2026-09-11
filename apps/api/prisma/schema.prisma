@@ -46,10 +46,11 @@ model Event {
   id          String      @id @default(uuid())
   organizerId String
   name        String
-  description String?
-  venue       String?
-  startAt     DateTime
-  endAt       DateTime
+  description  String?
+  venue        String?
+  venueMapUrl  String?
+  startAt      DateTime
+  endAt        DateTime
   status      EventStatus @default(DRAFT)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -119,6 +120,7 @@ model QueueEntry {
   customerPhone String?
 
   priority                 EntryPriority @default(NORMAL)
+  origin                   EntryOrigin   @default(QR)
   status                   EntryStatus   @default(WAITING)
   sequenceNumber           BigInt
   requeueAfterCallCount    Int?
@@ -146,6 +148,11 @@ model QueueEntry {
 enum EntryPriority {
   NORMAL
   VIP
+}
+
+enum EntryOrigin {
+  QR
+  WALK_IN
 }
 
 enum EntryStatus {

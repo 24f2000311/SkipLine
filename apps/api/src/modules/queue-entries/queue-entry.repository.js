@@ -37,6 +37,19 @@ export const queueEntryRepository = {
   },
 
   /**
+   * Fetches ALL entries for a specific queue (all statuses).
+   * Used for the organizer's participant overview.
+   * @param {string} queueId
+   * @param {object} [tx=prisma]
+   */
+  async findAllEntriesByQueueId(queueId, tx = prisma) {
+    return tx.queueEntry.findMany({
+      where: { queueId },
+      orderBy: { sequenceNumber: "asc" },
+    });
+  },
+
+  /**
    * Finds a QueueEntry by its unique ID.
    * @param {string} id
    * @param {object} [tx=prisma]

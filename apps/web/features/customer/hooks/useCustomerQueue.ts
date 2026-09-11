@@ -18,7 +18,7 @@ export const useJoinQueue = () => {
   });
 };
 
-export const useCustomerStatus = (queueId: string) => {
+export const useCustomerStatus = (queueId: string, isEventEnded?: boolean) => {
   const entryData = useCustomerStore((state) => state.entries[queueId]);
 
   return useQuery({
@@ -30,8 +30,9 @@ export const useCustomerStatus = (queueId: string) => {
     },
     enabled: !!entryData?.entryId,
     refetchInterval: (query) => {
+      if (isEventEnded) return false;
       const data = query.state.data as any;
-      if (data?.status === "COMPLETED" || data?.status === "CANCELLED" || data?.status === "SKIPPED") {
+      if (data?.entry?.status === "COMPLETED" || data?.entry?.status === "CANCELLED" || data?.entry?.status === "SKIPPED") {
         return false;
       }
       return 5000;

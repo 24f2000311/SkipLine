@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCreateEvent } from "@/features/events/hooks/useEvents";
-import { useRouter } from "next/navigation";
+import { useUpdateEvent, useEvent } from "@/features/events/hooks/useEvents";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, CalendarPlus } from "lucide-react";
+import { ArrowLeft, Loader2, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,54 +32,82 @@ const eventSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventSchema>;
 
-export default function CreateEventPage() {
-  const { mutate: createEvent, isPending } = useCreateEvent();
+export default function EditEventPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const { data: event, isLoading: isLoadingEvent } = useEvent(id);
+  const { mutate: updateEvent, isPending } = useUpdateEvent();
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
   });
+
+  useEffect(() => {
+    if (event) {
+      const start = new Date(event.startAt);
+      const end = new Date(event.endAt);
+      reset({
+        name: event.name,
+        description: event.description || "",
+        venue: event.venue || "",
+        venueMapUrl: event.venueMapUrl || "",
+        startDate: start.toISOString().split("T")[0],
+        startTime: start.toTimeString().split(" ")[0].slice(0, 5),
+        endDate: end.toISOString().split("T")[0],
+        endTime: end.toTimeString().split(" ")[0].slice(0, 5),
+      });
+    }
+  }, [event, reset]);
 
   const onSubmit = (data: EventFormValues) => {
     setServerError(null);
     const startAt = new Date(`${data.startDate}T${data.startTime}`).toISOString();
     const endAt = new Date(`${data.endDate}T${data.endTime}`).toISOString();
     
-    createEvent({
-      name: data.name,
-      description: data.description,
-      venue: data.venue,
-      venueMapUrl: data.venueMapUrl,
-      startAt,
-      endAt,
+    updateEvent({
+      id,
+      data: {
+        name: data.name,
+        description: data.description,
+        venue: data.venue,
+        venueMapUrl: data.venueMapUrl,
+        startAt,
+        endAt,
+      }
     }, {
-      onSuccess: (response) => {
-        router.push(`/organizer/events/${response?.data?.id || response?.id}`);
+      onSuccess: () => {
+        router.push(`/organizer/events/${id}`);
       },
       onError: (err: any) => {
-        setServerError(err.message || "An error occurred while creating the event.");
+        setServerError(err.message || "An error occurred while updating the event.");
       },
     });
   };
+
+  if (isLoadingEvent) {
+    return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-sl-blue" /></div>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto pb-12 animate-sl-fade-in">
       
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <Link href="/organizer/dashboard">
+        <Link href={`/organizer/events/${id}`}>
           <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            Create Event
+            Edit Event
           </h1>
         </div>
       </div>
@@ -89,11 +117,11 @@ export default function CreateEventPage() {
         {/* Form Intro */}
         <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/20">
           <div className="flex items-center gap-3 mb-1">
-            <CalendarPlus className="h-5 w-5 text-sl-blue" />
+            <Edit3 className="h-5 w-5 text-sl-blue" />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Event Details</h2>
           </div>
           <p className="text-sm font-medium text-slate-500">
-            Set up your event now. You can create queues after.
+            Update the event information below.
           </p>
         </div>
 
@@ -237,7 +265,7 @@ export default function CreateEventPage() {
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-            <Link href="/organizer/dashboard">
+            <Link href={`/organizer/events/${id}`}>
               <Button variant="ghost" type="button" className="h-11 font-semibold text-slate-600 hover:text-slate-900">
                 Cancel
               </Button>
@@ -246,10 +274,10 @@ export default function CreateEventPage() {
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating event...
+                  Updating...
                 </>
               ) : (
-                "Create Event"
+                "Save Changes"
               )}
             </Button>
           </div>

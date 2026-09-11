@@ -63,6 +63,35 @@ export const queueEntryController = {
   },
 
   /**
+   * Organizer adds a walk-in entry directly to the queue.
+   * POST /api/v1/queues/:queueId/walk-ins
+   */
+  async addWalkIn(req, res, next) {
+    try {
+      const { queueId } = req.params;
+      const { customerName, customerPhone, priority } = req.body;
+      const organizerId = req.user.id;
+
+      const result = await queueEntryService.addWalkInEntry({
+        queueId,
+        organizerId,
+        customerName,
+        customerPhone,
+        priority,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: {
+          entry: serializeQueueEntry(result.entry),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
    * Get queue entry current status, position, and wait estimate.
    * GET /api/v1/queue-entries/:id
    */
@@ -138,6 +167,24 @@ export const queueEntryController = {
     try {
       const { queueId } = req.params;
       const entries = await queueEntryService.getActiveEntriesForQueue(queueId, req.user.id);
+      
+      res.status(200).json({
+        success: true,
+        data: entries.map(serializeQueueEntry),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Organizer fetches ALL entries for participant overview (all statuses).
+   * GET /api/v1/queues/:queueId/entries/all
+   */
+  async getAllEntries(req, res, next) {
+    try {
+      const { queueId } = req.params;
+      const entries = await queueEntryService.getAllEntriesForQueue(queueId, req.user.id);
       
       res.status(200).json({
         success: true,

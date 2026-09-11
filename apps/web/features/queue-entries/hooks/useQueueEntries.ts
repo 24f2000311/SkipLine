@@ -13,6 +13,18 @@ export const useActiveEntries = (queueId: string) => {
   });
 };
 
+export const useAllEntries = (queueId: string) => {
+  return useQuery({
+    queryKey: ["queue-entries-all", queueId],
+    queryFn: async () => {
+      const response = await queueEntryApi.getAllEntries(queueId);
+      return response.data;
+    },
+    enabled: !!queueId,
+    refetchInterval: 10000, // Poll every 10 seconds
+  });
+};
+
 export const useCallNext = () => {
   const queryClient = useQueryClient();
 
@@ -23,6 +35,7 @@ export const useCallNext = () => {
     },
     onSuccess: (_, queueId) => {
       queryClient.invalidateQueries({ queryKey: ["queue-entries", queueId] });
+      queryClient.invalidateQueries({ queryKey: ["queue-entries-all", queueId] });
       queryClient.invalidateQueries({ queryKey: ["queue", queueId] });
     },
   });
@@ -38,6 +51,7 @@ export const useStartServing = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["queue-entries", variables.queueId] });
+      queryClient.invalidateQueries({ queryKey: ["queue-entries-all", variables.queueId] });
     },
   });
 };
@@ -52,6 +66,7 @@ export const useCompleteService = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["queue-entries", variables.queueId] });
+      queryClient.invalidateQueries({ queryKey: ["queue-entries-all", variables.queueId] });
       queryClient.invalidateQueries({ queryKey: ["queue", variables.queueId] });
     },
   });
@@ -67,6 +82,23 @@ export const useNoShow = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["queue-entries", variables.queueId] });
+      queryClient.invalidateQueries({ queryKey: ["queue-entries-all", variables.queueId] });
+    },
+  });
+};
+
+export const useAddWalkIn = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ queueId, data }: { queueId: string; data: { customerName?: string; customerPhone?: string; priority?: string } }) => {
+      const response = await queueEntryApi.addWalkIn(queueId, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["queue-entries", variables.queueId] });
+      queryClient.invalidateQueries({ queryKey: ["queue-entries-all", variables.queueId] });
+      queryClient.invalidateQueries({ queryKey: ["queue", variables.queueId] });
     },
   });
 };

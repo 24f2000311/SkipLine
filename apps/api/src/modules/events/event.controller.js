@@ -38,6 +38,18 @@ export const eventController = {
     }
   },
 
+  async getAnalytics(req, res, next) {
+    try {
+      const analytics = await eventService.getEventAnalytics(req.params.id, req.user.id);
+      res.status(200).json({
+        success: true,
+        data: analytics,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async update(req, res, next) {
     try {
       const updatedEvent = await eventService.updateEvent(req.params.id, req.user.id, req.body);

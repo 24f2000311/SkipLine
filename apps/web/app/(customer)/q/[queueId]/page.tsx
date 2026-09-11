@@ -2,6 +2,7 @@
 
 import { usePublicQueue } from "@/features/queues/hooks/useQueues";
 import { useJoinQueue, useCustomerStatus, useLeaveQueue } from "@/features/customer/hooks/useCustomerQueue";
+import { useCustomerNotifications } from "@/features/customer/hooks/useCustomerNotifications";
 import { useCustomerStore } from "@/features/customer/stores/useCustomerStore";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useParams } from "next/navigation";
@@ -19,15 +20,24 @@ export default function CustomerQueuePage() {
   const params = useParams();
   const queueId = params.queueId as string;
   
-  useWebSocket(queueId);
-  
   const { data: queue, isLoading: isLoadingQueue, error: queueError } = usePublicQueue(queueId);
-  const { data: status, isLoading: isLoadingStatus } = useCustomerStatus(queueId);
+  const now = new Date();
+  const isEventEnded = queue && (new Date(queue.event.endAt) <= now || queue.event.status === 'COMPLETED');
+  const isEventCancelled = queue && queue.event.status === 'CANCELLED';
+  const isEventNotStarted = queue && (queue.event.status === 'SCHEDULED' || new Date(queue.event.startAt) > now);
+  const isTerminalEvent = !!(isEventEnded || isEventCancelled);
+
+  useWebSocket(queueId, !isTerminalEvent);
   
+  const { data: status, isLoading: isLoadingStatus } = useCustomerStatus(queueId, isTerminalEvent);
+  
+  useCustomerNotifications(queueId, status);
+
   const { mutate: joinQueue, isPending: isJoining, error: joinError } = useJoinQueue();
   const { mutate: leaveQueue, isPending: isLeaving } = useLeaveQueue();
   
   const entryData = useCustomerStore((state) => state.entries[queueId]);
+  const updateNotificationState = useCustomerStore((state) => state.updateNotificationState);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -36,9 +46,18 @@ export default function CustomerQueuePage() {
     e.preventDefault();
     if (!name) return;
     joinQueue({ queueId, data: { customerName: name, customerPhone: phone } });
+    // Request notification permission eagerly on click
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  };
+
+  const handleAcknowledge = () => {
+    updateNotificationState(queueId, { acknowledgedCalled: true });
   };
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
 
   const handleLeaveConfirm = () => {
     if (!entryData) return;
@@ -97,7 +116,13 @@ export default function CustomerQueuePage() {
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold uppercase tracking-wider">
               <MapPin className="h-3.5 w-3.5 text-sl-cyan" />
-              <span className="line-clamp-1">{queue.event.name}</span>
+              {queue.event.venueMapUrl ? (
+                <a href={queue.event.venueMapUrl} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-sl-cyan transition-colors line-clamp-1">
+                  {queue.event.venue || queue.event.name}
+                </a>
+              ) : (
+                <span className="line-clamp-1">{queue.event.venue || queue.event.name}</span>
+              )}
             </div>
             
             {status && (
@@ -129,32 +154,83 @@ export default function CustomerQueuePage() {
 
         {/* ================= CONTENT ================= */}
         <div className="p-6 sm:p-8 -mt-4 pt-10 relative z-0">
-          {entryData && isLoadingStatus ? (
-            <div className="text-center py-10 space-y-4 animate-sl-fade-in">
-              <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-              <div className="space-y-2 flex flex-col items-center">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </div>
-            </div>
-          ) : !status ? (
-            queue.status === "CLOSED" ? (
-              /* CLOSED STATE */
-              <div className="text-center py-6 space-y-4 animate-sl-fade-in">
-                <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-slate-900 text-slate-400 rounded-full flex items-center justify-center">
-                  <XCircle className="w-8 h-8" />
+          {(() => {
+            if (entryData && isLoadingStatus) {
+              return (
+                <div className="text-center py-10 space-y-4 animate-sl-fade-in">
+                  <Skeleton className="h-12 w-12 rounded-full mx-auto" />
+                  <div className="space-y-2 flex flex-col items-center">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Queue Closed</h2>
-                  <p className="text-sm font-medium text-slate-500 mt-1">
-                    No new customers can join this queue.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              /* JOIN FORM */
-              <div className="space-y-6 animate-sl-fade-in">
-                <div className="text-center mb-6">
+              );
+            }
+
+            if (!status) {
+              if (isEventCancelled) {
+                return (
+                  <div className="text-center py-6 space-y-4 animate-sl-fade-in">
+                    <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center">
+                      <AlertCircle className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Event Cancelled</h2>
+                      <p className="text-sm font-medium text-slate-500 mt-1">
+                        This event has been cancelled.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              if (isEventEnded) {
+                return (
+                  <div className="text-center py-6 space-y-4 animate-sl-fade-in">
+                    <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-slate-900 text-slate-500 rounded-full flex items-center justify-center">
+                      <XCircle className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Event Ended</h2>
+                      <p className="text-sm font-medium text-slate-500 mt-1">
+                        This event has ended. The queue is no longer accepting participants.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              if (isEventNotStarted) {
+                return (
+                  <div className="text-center py-6 space-y-4 animate-sl-fade-in">
+                    <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center">
+                      <Clock className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Event Not Started</h2>
+                      <p className="text-sm font-medium text-slate-500 mt-1">
+                        This event hasn't started yet. Please check back later.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              if (queue.status === "CLOSED") {
+                return (
+                  <div className="text-center py-6 space-y-4 animate-sl-fade-in">
+                    <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-slate-900 text-slate-400 rounded-full flex items-center justify-center">
+                      <XCircle className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Queue Closed</h2>
+                      <p className="text-sm font-medium text-slate-500 mt-1">
+                        No new customers can join this queue.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-6 animate-sl-fade-in">
+                  <div className="text-center mb-6">
                   <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Join the queue</h2>
                   <p className="text-sm font-semibold text-sl-blue dark:text-blue-400 mt-2">
                     Join now and move freely while you wait. We'll let you know when it's your turn.
@@ -204,16 +280,48 @@ export default function CustomerQueuePage() {
                   </Button>
                 </form>
               </div>
-            )
-          ) : (
-            /* ================= ACTIVE STATUS VIEWS ================= */
-            <div className="space-y-6 flex flex-col items-center w-full">
+            );
+            }
+            
+            // If the user has a valid entry but the event is ended or cancelled
+            if (isEventEnded && ['WAITING', 'CALLED', 'SERVING'].includes(status.entry.status)) {
+              return (
+                <div className="text-center py-6 space-y-4 animate-sl-fade-in">
+                  <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-slate-900 text-slate-500 rounded-full flex items-center justify-center">
+                    <XCircle className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Session Ended</h2>
+                    <p className="text-sm font-medium text-slate-500 mt-1">
+                      Your queue session has ended because this event is over.
+                    </p>
+                  </div>
+                  <div className="text-center w-full py-6 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 mt-4">
+                    <p className="text-xs font-black text-slate-400 mb-3 uppercase tracking-widest">
+                      Your Token
+                    </p>
+                    <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
+                      A-{String(status.entry.sequenceNumber).padStart(3, '0')}
+                    </span>
+                  </div>
+                  <Button 
+                    className="w-full h-14 text-base font-bold rounded-xl mt-6 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                    onClick={() => useCustomerStore.getState().clearEntry(queueId)}
+                  >
+                    Done
+                  </Button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-6 flex flex-col items-center w-full">
 
               {/* CALLED STATE */}
               {status.entry.status === 'CALLED' && (
                 <div className="w-full text-center animate-sl-fade-in" role="alert" aria-live="assertive">
                   <div className="mb-8">
-                    <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 text-sm font-black uppercase tracking-widest mb-4 animate-sl-pulse-soft">
+                    <div className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-black uppercase tracking-widest mb-4 ${!entryData?.acknowledgedCalled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 animate-sl-pulse-soft' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
                       It's Your Turn
                     </div>
                     <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">You're Up!</h2>
@@ -222,7 +330,7 @@ export default function CustomerQueuePage() {
                     </p>
                   </div>
 
-                  <div className="text-center w-full py-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border-2 border-emerald-500/20 shadow-inner">
+                  <div className="text-center w-full py-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border-2 border-emerald-500/20 shadow-inner mb-6">
                     <p className="text-xs font-black text-emerald-600/70 dark:text-emerald-500/70 mb-3 uppercase tracking-widest">
                       Your Token
                     </p>
@@ -230,6 +338,21 @@ export default function CustomerQueuePage() {
                       A-{String(status.entry.sequenceNumber).padStart(3, '0')}
                     </span>
                   </div>
+                  
+                  {!entryData?.acknowledgedCalled && (
+                    <Button 
+                      className="w-full h-14 text-lg font-black rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 transition-all"
+                      onClick={handleAcknowledge}
+                    >
+                      I'm heading to the desk
+                    </Button>
+                  )}
+                  {entryData?.acknowledgedCalled && (
+                    <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-5 w-5" />
+                      We'll see you shortly
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -372,7 +495,8 @@ export default function CustomerQueuePage() {
                 </div>
               )}
             </div>
-          )}
+          );
+          })()}
         </div>
       </div>
       

@@ -31,7 +31,17 @@ export const usePublicQueue = (queueId: string) => {
       return response.data;
     },
     enabled: !!queueId,
-    refetchInterval: 10000, // Poll every 10s to keep capacity/status fresh
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      if (!data) return 10000;
+      
+      const isEventEnded = new Date(data.event.endAt) <= new Date() || data.event.status === 'COMPLETED';
+      const isEventCancelled = data.event.status === 'CANCELLED';
+      if (isEventEnded || isEventCancelled || data.status === 'CLOSED') {
+        return false;
+      }
+      return 10000;
+    }, // Poll every 10s to keep capacity/status fresh
   });
 };
 

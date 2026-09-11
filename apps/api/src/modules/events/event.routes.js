@@ -7,6 +7,7 @@ const router = Router();
 router.post("/events", authenticateOrganizer, eventController.create);
 router.get("/events", authenticateOrganizer, eventController.getAll);
 router.get("/events/:id", authenticateOrganizer, eventController.getOne);
+router.get("/events/:id/analytics", authenticateOrganizer, eventController.getAnalytics);
 router.put("/events/:id", authenticateOrganizer, eventController.update);
 router.delete("/events/:id", authenticateOrganizer, eventController.delete);
 

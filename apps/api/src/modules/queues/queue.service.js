@@ -61,13 +61,9 @@ export const getQueuePublic = async (id) => {
     throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
   }
 
-  const now = new Date();
-  if (
-    ["DRAFT", "SCHEDULED", "COMPLETED", "CANCELLED"].includes(queue.event.status) ||
-    new Date(queue.event.endAt) <= now
-  ) {
+  if (queue.event.status === "DRAFT") {
     throw new AppError(
-      "The event for this queue is not currently live or is unavailable.",
+      "The event for this queue is not publicly available yet.",
       403,
       "EVENT_UNAVAILABLE"
     );
@@ -84,7 +80,11 @@ export const getQueuePublic = async (id) => {
     _count: queue._count,
     event: {
       name: queue.event.name,
-      businessId: queue.event.businessId,
+      description: queue.event.description,
+      venue: queue.event.venue,
+      venueMapUrl: queue.event.venueMapUrl,
+      startAt: queue.event.startAt,
+      endAt: queue.event.endAt,
     }
   };
 };

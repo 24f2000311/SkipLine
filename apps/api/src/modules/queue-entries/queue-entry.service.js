@@ -1,5 +1,6 @@
 import prisma from "../../infrastructure/database/prisma.js";
 import AppError from "../../shared/errors/AppError.js";
+import crypto from "crypto";
 import { queueEntryRepository } from "./queue-entry.repository.js";
 import {
   QUEUE_ENTRY_STATUS,
@@ -91,6 +92,17 @@ export const getActiveEntriesForQueue = async (queueId, organizerId) => {
     throw new AppError("Queue not found or unauthorized", 404, "QUEUE_NOT_FOUND");
   }
   return queueEntryRepository.findActiveEntriesByQueueId(queueId);
+};
+
+export const getAllEntriesForQueue = async (queueId, organizerId) => {
+  const queue = await prisma.queue.findUnique({
+    where: { id: queueId },
+    include: { event: true },
+  });
+  if (!queue || queue.event.organizerId !== organizerId) {
+    throw new AppError("Queue not found or unauthorized", 404, "QUEUE_NOT_FOUND");
+  }
+  return queueEntryRepository.findAllEntriesByQueueId(queueId);
 };
 
 /**
@@ -204,6 +216,7 @@ export const joinQueue = async ({
       sequenceNumber,
       token,
       accessTokenHash,
+      origin: "QR",
     }, tx);
 
     const waitingAhead = await queueEntryRepository.countWaitingAhead(queueId, sequenceNumber, tx);
@@ -217,6 +230,115 @@ export const joinQueue = async ({
       position,
       estimatedWaitTimeMinutes,
     };
+  });
+
+  broadcastToQueue(queueId, "QUEUE_ENTRY_UPDATED", {
+    entryId: result.entry.id,
+    status: result.entry.status,
+  });
+
+  return result;
+};
+
+/**
+ * Creates a walk-in queue entry directly by the organizer.
+ */
+export const addWalkInEntry = async ({
+  queueId,
+  organizerId,
+  customerName,
+  customerPhone,
+  priority = "NORMAL",
+}) => {
+  if (!queueId) {
+    throw new AppError("queueId is required", 400, "MISSING_QUEUE_ID");
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    // Lock the Queue row
+    const lockedQueues = await tx.$queryRaw`
+      SELECT q.*, e.status AS "eventStatus", e."endAt" AS "eventEndAt", e."organizerId" AS "organizerId"
+      FROM "Queue" q
+      JOIN "Event" e ON q."eventId" = e.id
+      WHERE q.id = ${queueId}
+      FOR UPDATE OF q
+    `;
+
+    if (!lockedQueues || lockedQueues.length === 0) {
+      throw new AppError("Queue not found", 404, "QUEUE_NOT_FOUND");
+    }
+
+    const queue = lockedQueues[0];
+
+    // Authorization
+    if (queue.organizerId !== organizerId) {
+      throw new AppError("Queue not found or unauthorized", 404, "QUEUE_NOT_FOUND");
+    }
+
+    const now = new Date();
+    if (queue.eventStatus !== "LIVE" || new Date(queue.eventEndAt) <= now) {
+      throw new AppError(
+        "Cannot add walk-in. The event is not live or has ended.",
+        403,
+        "EVENT_UNAVAILABLE"
+      );
+    }
+
+    if (queue.status !== "OPEN") {
+      throw new AppError(
+        `Cannot add walk-in. Current queue status is '${queue.status}'.`,
+        400,
+        "QUEUE_NOT_OPEN"
+      );
+    }
+
+    if (queue.maxCapacity !== null && queue.maxCapacity !== undefined) {
+      const currentActiveCount = await tx.queueEntry.count({
+        where: {
+          queueId,
+          status: { in: ["WAITING", "CALLED", "SERVING"] },
+        },
+      });
+      if (currentActiveCount >= queue.maxCapacity) {
+        throw new AppError("Queue is currently at maximum capacity", 400, "QUEUE_FULL");
+      }
+    }
+
+    // Phone uniqueness check
+    if (customerPhone) {
+      const existingPhoneEntry = await tx.queueEntry.findFirst({
+        where: {
+          queueId,
+          customerPhone,
+          status: { in: ["WAITING", "CALLED", "SERVING"] },
+        }
+      });
+
+      if (existingPhoneEntry) {
+        throw new AppError("A customer with this phone number is already waiting in this queue.", 400, "PHONE_ALREADY_IN_QUEUE");
+      }
+    }
+
+    const rawAccessToken = generateAccessToken();
+    const accessTokenHash = hashAccessToken(rawAccessToken);
+    const sequenceNumber = await queueEntryRepository.getNextSequenceNumber(queueId, tx);
+    const token = generateHumanToken(priority, sequenceNumber);
+    const sessionId = `walkin-${crypto.randomUUID()}`;
+
+    const entry = await queueEntryRepository.create({
+      queueId,
+      sessionId,
+      customerName: customerName || null,
+      customerPhone: customerPhone || null,
+      priority: priority === "VIP" ? "VIP" : "NORMAL",
+      status: QUEUE_ENTRY_STATUS.WAITING,
+      sequenceNumber,
+      token,
+      accessTokenHash,
+      origin: "WALK_IN",
+    }, tx);
+
+    return { entry };
   });
 
   broadcastToQueue(queueId, "QUEUE_ENTRY_UPDATED", {

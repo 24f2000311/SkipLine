@@ -2,13 +2,18 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useCustomerStore } from '@/features/customer/stores/useCustomerStore';
+import { getApiUrl } from '@/lib/url';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8123/api/v1";
-const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '/ws');
+const getWsBaseUrl = () => {
+  const apiUrl = getApiUrl();
+  return apiUrl.replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '/ws');
+};
+
+const WS_BASE_URL = getWsBaseUrl();
 
 type ConnectionState = 'disconnected' | 'connecting' | 'connected';
 
-export const useWebSocket = (queueId?: string) => {
+export const useWebSocket = (queueId?: string, enabled: boolean = true) => {
   const queryClient = useQueryClient();
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
 
@@ -17,7 +22,7 @@ export const useWebSocket = (queueId?: string) => {
   const customerEntry = useCustomerStore((state) => queueId ? state.entries[queueId] : null);
 
   useEffect(() => {
-    if (!queueId) {
+    if (!queueId || !enabled) {
       setConnectionState('disconnected');
       return;
     }
@@ -115,7 +120,7 @@ export const useWebSocket = (queueId?: string) => {
         ws = null;
       }
     };
-  }, [queueId, organizerToken, customerEntry?.token, customerEntry?.entryId, queryClient]);
+  }, [queueId, enabled, organizerToken, customerEntry?.token, customerEntry?.entryId, queryClient]);
 
   return { connectionState };
 };

@@ -2,7 +2,7 @@
 
 import { useEvents } from "@/features/events/hooks/useEvents";
 import Link from "next/link";
-import { Plus, CalendarDays, MapPin, Clock } from "lucide-react";
+import { Plus, Calendar, CalendarDays, MapPin, Clock, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -150,47 +150,56 @@ function EventCard({ event, primaryAction }: { event: any, primaryAction: string
   const isLive = event.status === 'LIVE';
 
   return (
-    <Card className="flex flex-col group hover:shadow-md transition-standard border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-950">
-      <CardHeader className="pb-3 px-5 pt-5">
-        <div className="flex justify-between items-start gap-4 mb-1">
-          <CardTitle className="text-lg font-bold leading-tight group-hover:text-sl-blue transition-colors line-clamp-1" title={event.name}>
-            {event.name}
-          </CardTitle>
-          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest shrink-0 ${
-            isLive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' :
-            event.status === 'DRAFT' ? 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700' :
-            'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700'
-          }`}>
-            {event.status}
-          </span>
-        </div>
-        
-        <div className="flex flex-col gap-1.5 mt-2 text-[13px] font-medium text-slate-500 dark:text-slate-400">
-          {event.venue && (
-            <div className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span className="line-clamp-1">{event.venue}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5 shrink-0" />
-            <span className="line-clamp-1">
-              {new Date(event.startAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+    <Link href={`/organizer/events/${event.id}`} className="block group">
+      <Card className="flex flex-col h-full hover:shadow-md transition-standard border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-950">
+        <CardHeader className="pb-3 px-5 pt-5">
+          <div className="flex justify-between items-start gap-4 mb-1">
+            <CardTitle className="text-lg font-bold leading-tight group-hover:text-sl-blue transition-colors line-clamp-1" title={event.name}>
+              {event.name}
+            </CardTitle>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest shrink-0 ${
+              isLive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' :
+              event.status === 'DRAFT' ? 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700' :
+              'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700'
+            }`}>
+              {event.status}
             </span>
           </div>
-        </div>
-      </CardHeader>
-      
-      <CardFooter className="pt-3 pb-4 px-5 border-t border-slate-100 dark:border-slate-900 mt-auto bg-slate-50/50 dark:bg-slate-900/20">
-        <Link href={`/organizer/events/${event.id}`} className="w-full">
+          
+          <div className="flex flex-col gap-1.5 mt-2 text-[13px] font-medium text-slate-500 dark:text-slate-400">
+            {event.venue && (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="line-clamp-1">{event.venue}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              <span className="line-clamp-1">
+                {new Date(event.startAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-1.5 pt-1 mt-1 border-t border-slate-100 dark:border-slate-800">
+              <Users className="h-3.5 w-3.5 shrink-0" />
+              <span>
+                {event.queues?.length || 0} {(event.queues?.length === 1) ? 'queue' : 'queues'}
+                {' • '}
+                {event.queues?.reduce((sum: number, q: any) => sum + (q._count?.entries || 0), 0) || 0} participants
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardFooter className="pt-3 pb-4 px-5 border-t border-slate-100 dark:border-slate-900 mt-auto bg-slate-50/50 dark:bg-slate-900/20">
           <Button 
             variant={isLive ? 'default' : 'secondary'} 
             className={`w-full h-9 text-xs font-bold shadow-none ${isLive ? 'bg-sl-blue hover:bg-blue-700' : ''}`}
           >
             {primaryAction}
           </Button>
-        </Link>
-      </CardFooter>
-    </Card>
+        </CardFooter>
+      </Card>
+    </Link>
   );
 }

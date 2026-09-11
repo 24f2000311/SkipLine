@@ -13,7 +13,7 @@ export default function OrganizerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { accessToken, user, clearAuth } = useAuthStore();
+  const { accessToken, user, clearAuth, _hasHydrated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
@@ -23,10 +23,13 @@ export default function OrganizerLayout({
 
   useEffect(() => {
     setIsMounted(true);
-    if (!accessToken) {
+  }, []);
+
+  useEffect(() => {
+    if (_hasHydrated && !accessToken) {
       router.push("/login");
     }
-  }, [accessToken, router]);
+  }, [_hasHydrated, accessToken, router]);
 
   // Close menus when path changes
   useEffect(() => {
@@ -45,7 +48,7 @@ export default function OrganizerLayout({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!isMounted || !accessToken) {
+  if (!isMounted || !_hasHydrated || !accessToken) {
     return null; // Prevent hydration mismatch and hide protected content
   }
 

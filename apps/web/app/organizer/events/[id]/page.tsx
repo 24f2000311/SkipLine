@@ -3,13 +3,16 @@
 import { useEvent, useDeleteEvent, useUpdateEvent } from "@/features/events/hooks/useEvents";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Clock, Trash2, Play, CheckCircle2, XCircle, Plus, SearchX, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Trash2, Play, CheckCircle2, XCircle, Plus, SearchX, AlertCircle, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQueues } from "@/features/queues/hooks/useQueues";
 import { CreateQueueDialog } from "@/features/queues/components/CreateQueueDialog";
+import { EditQueueDialog } from "@/features/queues/components/EditQueueDialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useState } from "react";
+
+import { EditEventDialog } from "@/features/events/components/EditEventDialog";
 
 export default function EventDetailsPage() {
   const params = useParams();
@@ -37,7 +40,10 @@ export default function EventDetailsPage() {
         setShowDeleteConfirm(false);
         router.push("/organizer/dashboard");
       },
-      onError: () => alert("Something went wrong while deleting the event. Please try again.")
+      onError: (error: any) => {
+        const message = error?.response?.data?.error?.message || "Something went wrong while deleting the event. Please try again.";
+        alert(message);
+      }
     });
   };
 
@@ -79,6 +85,9 @@ export default function EventDetailsPage() {
 
   const isLive = event.status === 'LIVE';
   const isDraft = event.status === 'DRAFT';
+  const now = new Date();
+  const isEventEnded = new Date(event.endAt) <= now || event.status === 'COMPLETED';
+  const isEventCancelled = event.status === 'CANCELLED';
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
@@ -110,10 +119,27 @@ export default function EventDetailsPage() {
               {event.status}
             </span>
 
+            {isEventCancelled && (
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/40 dark:text-red-400">
+                Event Cancelled
+              </span>
+            )}
+            {isEventEnded && !isEventCancelled && (
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300">
+                Event Ended
+              </span>
+            )}
+
             {event.venue && (
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 shrink-0" />
-                <span>{event.venue}</span>
+                {event.venueMapUrl ? (
+                  <a href={event.venueMapUrl} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-sl-blue transition-colors">
+                    {event.venue}
+                  </a>
+                ) : (
+                  <span>{event.venue}</span>
+                )}
               </div>
             )}
             <div className="flex items-center gap-1.5">
@@ -140,7 +166,7 @@ export default function EventDetailsPage() {
             </Button>
           )}
           
-          {isLive && (
+          {isLive && !isEventEnded && (
             <Button 
               onClick={() => handleUpdateStatus('COMPLETED')} 
               disabled={isUpdating}
@@ -153,7 +179,7 @@ export default function EventDetailsPage() {
 
           {/* Secondary Actions Menu/Group */}
           <div className="flex gap-2 w-full md:w-auto">
-            {isLive && (
+            {isLive && !isEventEnded && (
               <Button 
                 variant="outline" 
                 onClick={() => setShowCancelConfirm(true)}
@@ -164,15 +190,20 @@ export default function EventDetailsPage() {
                 Cancel
               </Button>
             )}
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDeleteConfirm(true)} 
-              disabled={isDeleting}
-              className="gap-2 text-slate-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors flex-1 md:flex-none"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </Button>
+            {(isDraft || event.status === 'SCHEDULED' || isLive || isEventEnded) && (
+              <EditEventDialog event={event} />
+            )}
+            {(isDraft || event.status === 'SCHEDULED') && (
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDeleteConfirm(true)} 
+                disabled={isDeleting}
+                className="gap-2 text-slate-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors flex-1 md:flex-none"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -280,11 +311,14 @@ export default function EventDetailsPage() {
                                 </span>
                               </div>
                             </div>
-                            <Link href={`/organizer/events/${id}/queues/${queue.id}`} className="mt-4 sm:mt-0 w-full sm:w-auto">
-                              <Button variant={isOpen ? 'default' : 'secondary'} size="sm" className={`w-full font-bold h-9 ${isOpen ? 'bg-sl-blue text-white hover:bg-blue-700 shadow-sm' : ''}`}>
-                                {isOpen ? 'Open Queue' : 'Manage Queue'}
-                              </Button>
-                            </Link>
+                            <div className="flex items-center gap-2 mt-4 sm:mt-0 w-full sm:w-auto">
+                              <EditQueueDialog queue={queue} />
+                              <Link href={`/organizer/events/${id}/queues/${queue.id}`} className="flex-1 sm:flex-none">
+                                <Button variant={isOpen ? 'default' : 'secondary'} size="sm" className={`w-full font-bold h-9 ${isOpen ? 'bg-sl-blue text-white hover:bg-blue-700 shadow-sm' : ''}`}>
+                                  {isOpen ? 'Open Queue' : 'Manage Queue'}
+                                </Button>
+                              </Link>
+                            </div>
                           </div>
                         )
                       })}

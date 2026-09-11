@@ -71,6 +71,50 @@ describe('Test Group 1: Event Lifecycle', () => {
     expect(calledAfter.status).toBe('CANCELLED');
     expect(servingAfter.status).toBe('SERVING');
   });
+
+  it('DRAFT event with NO entries can be hard deleted', async () => {
+    const org = await createOrganizer();
+    const event = await createEvent(org.token, { status: 'DRAFT' });
+    await createQueue(org.token, event.id); // Add an empty queue
+
+    const res = await request(app)
+      .delete(`/api/v1/events/${event.id}`)
+      .set('Authorization', `Bearer ${org.token}`);
+
+    expect(res.status).toBe(200);
+
+    const deletedEvent = await prisma.event.findUnique({ where: { id: event.id } });
+    expect(deletedEvent).toBeNull();
+  });
+
+  it('LIVE event cannot be hard deleted', async () => {
+    const org = await createOrganizer();
+    const event = await createEvent(org.token, { status: 'LIVE' });
+
+    const res = await request(app)
+      .delete(`/api/v1/events/${event.id}`)
+      .set('Authorization', `Bearer ${org.token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/Only DRAFT or SCHEDULED events can be deleted/);
+  });
+
+  it('DRAFT event with participant history cannot be hard deleted', async () => {
+    const org = await createOrganizer();
+    const event = await createEvent(org.token, { status: 'DRAFT' });
+    const queue = await createQueue(org.token, event.id);
+
+    await prisma.queueEntry.create({
+      data: { queueId: queue.id, status: 'WAITING', sequenceNumber: 1, token: crypto.randomUUID(), accessTokenHash: crypto.randomUUID(), sessionId: crypto.randomUUID() }
+    });
+
+    const res = await request(app)
+      .delete(`/api/v1/events/${event.id}`)
+      .set('Authorization', `Bearer ${org.token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/Cannot delete an event that has participant history/);
+  });
 });
 
 describe('Test Group 2: Public Event/Queue Lifecycle', () => {

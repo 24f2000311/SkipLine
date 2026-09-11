@@ -13,6 +13,8 @@ router.post("/queue-entries/:id/leave", authenticateQueueCustomer, queueEntryCon
 
 // Organizer endpoints
 router.get("/queues/:queueId/entries", authenticateOrganizer, queueEntryController.getActiveEntries);
+router.get("/queues/:queueId/entries/all", authenticateOrganizer, queueEntryController.getAllEntries);
+router.post("/queues/:queueId/walk-ins", authenticateOrganizer, queueEntryController.addWalkIn);
 router.post("/queues/:queueId/call-next", authenticateOrganizer, queueEntryController.callNext);
 router.post("/queue-entries/:id/start", authenticateOrganizer, queueEntryController.startServing);
 router.post("/queue-entries/:id/no-show", authenticateOrganizer, queueEntryController.handleNoShow);

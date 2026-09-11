@@ -17,7 +17,9 @@ export function ShareQrDialog({ queueId, queueName }: ShareQrDialogProps) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setJoinUrl(`${window.location.origin}/q/${queueId}`);
+    import("@/lib/url").then(({ getAppUrl }) => {
+      setJoinUrl(`${getAppUrl()}/q/${queueId}`);
+    });
   }, [queueId]);
 
   const copyToClipboard = async () => {
