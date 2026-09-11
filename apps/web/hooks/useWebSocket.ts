@@ -4,12 +4,16 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useCustomerStore } from '@/features/customer/stores/useCustomerStore';
 import { getApiUrl } from '@/lib/url';
 
-const getWsBaseUrl = () => {
+export const getWsBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL;
+  }
   const apiUrl = getApiUrl();
-  return apiUrl.replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '/ws');
+  return apiUrl
+    .replace(/^https:\/\//, 'wss://')
+    .replace(/^http:\/\//, 'ws://')
+    .replace(/\/api\/v1\/?$/, '/ws');
 };
-
-const WS_BASE_URL = getWsBaseUrl();
 
 type ConnectionState = 'disconnected' | 'connecting' | 'connected';
 
@@ -35,7 +39,7 @@ export const useWebSocket = (queueId?: string, enabled: boolean = true) => {
     const connect = () => {
       if (!active) return;
 
-      const url = new URL(WS_BASE_URL);
+      const url = new URL(getWsBaseUrl());
       if (organizerToken) {
         url.searchParams.set('token', organizerToken);
       }

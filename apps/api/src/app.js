@@ -12,13 +12,44 @@ import healthRouter from "./routes/health.routes.js";
 import errorMiddleware from "./middleware/error.middleware.js";
 import httpLogger from "./infrastructure/logger/httpLogger.js";
 
+import env from "./config/env.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+
+const allowedOrigins = env.corsOrigin
+  ? env.corsOrigin.split(",").map((o) => o.trim())
+  : [];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests (server-to-server, curl, health checks)
+    if (!origin) return callback(null, true);
+
+    // If wildcard or no specific origin configured, allow all
+    if (allowedOrigins.length === 0 || allowedOrigins.includes("*")) {
+      return callback(null, true);
+    }
+
+    // Always allow localhost in development
+    if (env.nodeEnv === "development" && (/^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin))) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(httpLogger);
 

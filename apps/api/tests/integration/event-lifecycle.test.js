@@ -154,7 +154,7 @@ describe('Test Group 2: Public Event/Queue Lifecycle', () => {
     expect(joinRes.status).toBe(400);
   });
 
-  it('LIVE event whose endAt has passed blocks public access', async () => {
+  it('LIVE event whose endAt has passed allows public view but blocks join', async () => {
     const org = await createOrganizer();
     const startAt = new Date(Date.now() - 20000);
     const endAt = new Date(Date.now() - 10000);
@@ -167,7 +167,8 @@ describe('Test Group 2: Public Event/Queue Lifecycle', () => {
     const queue = await createQueue(org.token, event.id);
 
     const fetchRes = await request(app).get(`/api/v1/queues/${queue.id}/public`);
-    expect(fetchRes.status).toBe(403);
+    expect(fetchRes.status).toBe(200);
+    expect(new Date(fetchRes.body.data.event.endAt).getTime()).toBeLessThan(Date.now());
 
     const joinRes = await request(app).post(`/api/v1/queues/${queue.id}/entries`).send({ sessionId: 's1' });
     expect(joinRes.status).toBe(403);

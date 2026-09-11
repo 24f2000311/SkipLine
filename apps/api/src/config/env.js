@@ -10,6 +10,7 @@ const env = {
   logLevel: process.env.LOG_LEVEL || "info",
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET || "skipline_dev_jwt_secret_key_change_in_prod",
+  corsOrigin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "",
 };
 
 export default env;

@@ -6,7 +6,14 @@
   "workspaces": [
     "apps/*"
   ],
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
+    "build": "npm --prefix apps/api run build",
+    "start": "npm --prefix apps/api start",
+    "build:api": "npm --prefix apps/api run build",
+    "start:api": "npm --prefix apps/api start",
     "dev:api": "npm --prefix apps/api run dev",
     "dev:web": "npm --prefix apps/web run dev",
     "seed": "npm --prefix apps/api run seed"

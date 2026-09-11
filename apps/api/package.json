@@ -4,9 +4,17 @@
   "description": "Skipline backend API",
   "main": "src/server.js",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "nodemon src/server.js",
+    "build": "prisma generate",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prestart": "prisma generate && prisma migrate deploy",
     "start": "node src/server.js",
+    "deploy": "prisma migrate deploy && node src/server.js",
     "seed": "node prisma/seed.js",
     "test": "vitest run",
     "test:integration": "cross-env PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"The user has approved this document.\" DATABASE_URL=\"postgresql://skipline:root123@localhost:5433/skipline_test?schema=public\" npx prisma db push --accept-data-loss && cross-env DATABASE_URL=\"postgresql://skipline:root123@localhost:5433/skipline_test?schema=public\" vitest run --no-file-parallelism -c vitest.integration.config.js"
@@ -31,6 +39,7 @@
     "pg": "^8.23.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
+    "prisma": "^7.9.1",
     "swagger-ui-express": "^5.0.1",
     "ws": "^8.21.3",
     "zod": "^4.4.3"
@@ -39,7 +48,6 @@
     "@apidevtools/swagger-parser": "^13.0.0",
     "cross-env": "^10.1.0",
     "nodemon": "^3.1.14",
-    "prisma": "^7.9.1",
     "supertest": "^7.2.2",
     "vitest": "^5.0.0",
     "yaml": "^2.9.0"

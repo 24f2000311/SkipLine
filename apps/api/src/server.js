@@ -8,10 +8,12 @@ const startServer = async () => {
   try {
     await connectDatabase();
 
-    const server = app.listen(env.port, () => {
+    const host = "0.0.0.0";
+    const server = app.listen(env.port, host, () => {
       logger.info({
         event: "server.started",
         port: env.port,
+        host,
       });
     });
 
