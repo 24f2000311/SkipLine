@@ -4,26 +4,70 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import Link from "next/link";
-import { LogOut, CalendarDays, LayoutDashboard, Menu, X, User } from "lucide-react";
+import { LogOut, CalendarDays, LayoutDashboard, Menu, X, User, AlertCircle, Settings } from "lucide-react";
 import { SkiplineLogo } from "@/components/skipline-logo";
 import { Button } from "@/components/ui/button";
+import { authApi } from "@/lib/api/auth";
+import { teardownOrganizerSession } from "@/lib/auth-session";
 
 export default function OrganizerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { accessToken, user, clearAuth, _hasHydrated } = useAuthStore();
+  const { accessToken, user, setAuth, _hasHydrated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleResendVerification = async () => {
+    if (!user?.email || isResendingVerification) return;
+    setIsResendingVerification(true);
+    try {
+      await authApi.resendVerification(user.email);
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 5000);
+    } catch (e) {
+      // safe ignore
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Reconcile emailVerifiedAt without requiring logout/login
+  useEffect(() => {
+    const reconcileUser = () => {
+      const current = useAuthStore.getState();
+      if (current.accessToken && current.user && !current.user.emailVerifiedAt) {
+        authApi
+          .getMe()
+          .then((res) => {
+            const freshUser = res.data?.data || res.data;
+            if (freshUser?.emailVerifiedAt) {
+              current.updateUser({
+                emailVerifiedAt: freshUser.emailVerifiedAt,
+              });
+            }
+          })
+          .catch(() => {});
+      }
+    };
+
+    reconcileUser();
+
+    window.addEventListener("focus", reconcileUser);
+    return () => window.removeEventListener("focus", reconcileUser);
+  }, []);
+
 
   useEffect(() => {
     if (_hasHydrated && !accessToken) {
@@ -65,14 +109,16 @@ export default function OrganizerLayout({
     } catch (e) {
       // Ignore errors on logout
     } finally {
-      clearAuth();
+      await teardownOrganizerSession();
       router.push("/login");
     }
   };
 
+
   const navLinks = [
     { name: "Dashboard", href: "/organizer/dashboard", icon: LayoutDashboard },
     { name: "Create Event", href: "/organizer/events/new", icon: CalendarDays },
+    { name: "Settings", href: "/organizer/settings", icon: Settings },
   ];
 
   return (
@@ -94,10 +140,10 @@ export default function OrganizerLayout({
                     <Link 
                       key={link.href}
                       href={link.href} 
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-micro ${
+                      className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-micro ${
                         isActive 
-                          ? "bg-muted text-foreground" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          ? "bg-muted text-foreground font-semibold" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 font-medium"
                       }`}
                       aria-current={isActive ? "page" : undefined}
                     >
@@ -131,6 +177,14 @@ export default function OrganizerLayout({
                       <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                     </div>
+                    <Link
+                      href="/organizer/settings"
+                      className="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 flex items-center gap-2 transition-micro"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <Settings className="h-4 w-4" />
+                      Settings & Danger Zone
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-sl-error hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-micro"
@@ -169,10 +223,10 @@ export default function OrganizerLayout({
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`flex items-center gap-3 px-3 py-3 text-base font-medium rounded-lg transition-micro ${
+                    className={`flex items-center gap-3 px-3 py-3 text-base rounded-lg transition-micro ${
                       isActive 
-                        ? "bg-muted text-foreground" 
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        ? "bg-muted text-foreground font-semibold" 
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground font-medium"
                     }`}
                     aria-current={isActive ? "page" : undefined}
                   >
@@ -204,11 +258,43 @@ export default function OrganizerLayout({
           </div>
         )}
       </nav>
+
+      {/* Unverified Email Setup Card / Banner */}
+      {user && !user.emailVerifiedAt && (
+        <div className="bg-blue-50/70 dark:bg-blue-950/30 border-b border-[#1868F8]/20 px-4 py-3 text-xs sm:text-sm font-medium animate-sl-fade-in">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-2.5 text-slate-700 dark:text-slate-200">
+              <span className="text-[#1868F8] font-bold text-sm select-none">✦</span>
+              <div>
+                <span className="font-bold text-slate-900 dark:text-white mr-1.5">
+                  Verify your email
+                </span>
+                <span className="text-slate-600 dark:text-slate-300">
+                  — Your account is ready, but you need to verify your email before creating events or queues.
+                </span>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleResendVerification}
+              disabled={isResendingVerification}
+              className="h-8 px-3.5 text-xs font-bold shrink-0 bg-[#1868F8] hover:bg-blue-700 text-white rounded-lg shadow-xs transition-micro"
+            >
+              {isResendingVerification
+                ? "Sending..."
+                : resendSuccess
+                ? "Verification Sent!"
+                : "Resend verification email"}
+            </Button>
+          </div>
+        </div>
+      )}
       
       {/* Standardized main layout framing */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
+      <main key={user?.id || "unauthenticated"} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
         {children}
       </main>
     </div>
   );
 }
+

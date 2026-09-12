@@ -66,3 +66,22 @@ export const generateRefreshToken = () => {
 export const hashRefreshToken = (rawToken) => {
   return crypto.createHash("sha256").update(rawToken).digest("hex");
 };
+
+/**
+ * Generates a cryptographically random token for email verification or password reset.
+ * @param {string} prefix - e.g. "sk_verify" or "sk_reset"
+ * @returns {string} Raw high-entropy token
+ */
+export const generateAuthToken = (prefix = "sk_tok") => {
+  return `${prefix}_${crypto.randomBytes(32).toString("hex")}`;
+};
+
+/**
+ * Computes a SHA-256 hash of a raw verification or reset token for secure DB storage.
+ * @param {string} rawToken
+ * @returns {string} SHA-256 hex string
+ */
+export const hashAuthToken = (rawToken) => {
+  return crypto.createHash("sha256").update(String(rawToken)).digest("hex");
+};
+

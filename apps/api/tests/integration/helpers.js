@@ -14,6 +14,38 @@ export const createOrganizer = async (baseEmail = 'test', password = 'password12
     throw new Error(`Failed to create organizer: ${JSON.stringify(res.body)}`);
   }
 
+  // By default in integration test helper, mark organizer as verified so downstream tests proceed
+  const verifiedUser = await prisma.user.update({
+    where: { id: res.body.data.user.id },
+    data: { emailVerifiedAt: new Date() },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      status: true,
+      emailVerifiedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+
+  return {
+    ...verifiedUser,
+    token: res.body.data.tokens.accessToken
+  };
+};
+
+export const createUnverifiedOrganizer = async (baseEmail = 'unverified', password = 'password123') => {
+  const email = baseEmail.includes('@') ? baseEmail.replace('@', `-${crypto.randomUUID()}@`) : `${baseEmail}-${crypto.randomUUID()}@example.com`;
+  
+  const res = await request(app)
+    .post('/api/v1/auth/register')
+    .send({ name: 'Unverified Organizer', email, password });
+  
+  if (res.status >= 400) {
+    throw new Error(`Failed to create unverified organizer: ${JSON.stringify(res.body)}`);
+  }
+
   return {
     ...res.body.data.user,
     token: res.body.data.tokens.accessToken

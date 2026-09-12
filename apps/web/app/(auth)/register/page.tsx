@@ -17,7 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SkiplineLogo } from "@/components/skipline-logo";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, MailCheck, CheckCircle2, AlertCircle } from "lucide-react";
+import { authApi } from "@/lib/api/auth";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -32,6 +33,9 @@ export default function RegisterPage() {
   const { mutate: registerOrganizer, isPending } = useRegister();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const {
     register,
@@ -46,12 +50,34 @@ export default function RegisterPage() {
     registerOrganizer(data, {
       onError: (err: any) => {
         const errorMsg =
-          err?.message ||
           err?.response?.data?.error?.message ||
+          err?.message ||
           "Registration failed. Please check your details and try again.";
         setServerError(errorMsg);
       },
     });
+  };
+
+  const handleResend = async () => {
+    if (!registeredEmail || isResending) return;
+    setIsResending(true);
+    setResendStatus(null);
+    try {
+      await authApi.resendVerification(registeredEmail);
+      setResendStatus({
+        type: "success",
+        message: "Verification email resent! Please check your inbox and spam folder.",
+      });
+    } catch (err: any) {
+      setResendStatus({
+        type: "error",
+        message:
+          err?.response?.data?.error?.message ||
+          "Could not resend verification email. Please try again in a few minutes.",
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
   return (
@@ -63,8 +89,95 @@ export default function RegisterPage() {
           <SkiplineLogo size="lg" />
         </Link>
 
-        {/* Auth Card */}
-        <Card className="w-full shadow-sm border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-950">
+        {registeredEmail ? (
+          /* ================= VERIFICATION SENT STATE ================= */
+          <Card className="w-full shadow-sm border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-950 animate-sl-fade-in">
+            <CardHeader className="space-y-3 text-center pt-8 pb-4">
+              <div className="mx-auto w-16 h-16 bg-blue-50 dark:bg-blue-950/40 text-sl-blue rounded-full flex items-center justify-center mb-1">
+                <MailCheck className="w-8 h-8 text-sl-blue" />
+              </div>
+              <CardTitle className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Check your email
+              </CardTitle>
+              <CardDescription className="text-sm font-medium text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
+                Check your email to verify your Skipline account.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="p-6 pt-2 space-y-5 text-center">
+              <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Sent to</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white break-all">
+                  {registeredEmail}
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Click the confirmation link in the email to activate full organizer features. The link is valid for 24 hours.
+              </p>
+
+              {resendStatus && (
+                <div
+                  role="alert"
+                  className={`p-3 text-sm font-medium rounded-xl flex items-center justify-center gap-2 ${
+                    resendStatus.type === "success"
+                      ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50"
+                      : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50"
+                  }`}
+                >
+                  {resendStatus.type === "success" ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                  )}
+                  <span>{resendStatus.message}</span>
+                </div>
+              )}
+
+              <div className="space-y-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleResend}
+                  disabled={isResending}
+                  className="w-full h-11 font-semibold rounded-lg border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900"
+                >
+                  {isResending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending email...
+                    </>
+                  ) : (
+                    "Resend verification email"
+                  )}
+                </Button>
+
+                <Link href="/organizer/dashboard" className="block w-full">
+                  <Button
+                    type="button"
+                    className="w-full h-11 font-bold bg-sl-blue hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                  >
+                    Continue to Dashboard
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+
+            <div className="bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 p-4 text-center">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                Wrong email address?{" "}
+                <button
+                  type="button"
+                  onClick={() => setRegisteredEmail(null)}
+                  className="text-sl-blue hover:underline font-semibold"
+                >
+                  Register with another email
+                </button>
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <Card className="w-full shadow-sm border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-950">
           <CardHeader className="space-y-2 text-center pt-8 pb-4">
             <CardTitle className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Create your organizer account
@@ -188,6 +301,7 @@ export default function RegisterPage() {
             </p>
           </div>
         </Card>
+        )}
 
       </div>
     </div>

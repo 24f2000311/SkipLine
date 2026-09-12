@@ -11,9 +11,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-satoshi), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-satoshi), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Shadcn semantic mappings */
   --color-sidebar-ring: var(--sidebar-ring);
@@ -55,8 +55,10 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* Skipline brand colors — available as Tailwind classes */
-  --color-sl-blue: #2563EB;
+  /* Skipline brand colors — matching the official Skipline logo */
+  --color-sl-blue: #1868F8;
+  --color-sl-blue-hover: #0D52D6;
+  --color-sl-blue-active: #0A42B0;
   --color-sl-cyan: #06B6D4;
   --color-sl-purple: #8B5CF6;
   --color-sl-dark: #0F172A;
@@ -90,7 +92,7 @@
   --card-foreground: #0F172A;
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
-  --primary: #2563EB;
+  --primary: #1868F8;
   --primary-foreground: #FFFFFF;
   --secondary: #F1F5F9;
   --secondary-foreground: #0F172A;
@@ -101,8 +103,8 @@
   --destructive: #EF4444;
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: #2563EB;
-  --chart-1: #2563EB;
+  --ring: #1868F8;
+  --chart-1: #1868F8;
   --chart-2: #06B6D4;
   --chart-3: #8B5CF6;
   --chart-4: #10B981;
@@ -111,12 +113,12 @@
 
   --sidebar: #F8FAFC;
   --sidebar-foreground: #0F172A;
-  --sidebar-primary: #2563EB;
+  --sidebar-primary: #1868F8;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #F1F5F9;
   --sidebar-accent-foreground: #0F172A;
   --sidebar-border: #E2E8F0;
-  --sidebar-ring: #2563EB;
+  --sidebar-ring: #1868F8;
 }
 
 /* ============================================
@@ -129,7 +131,7 @@
   --card-foreground: #F1F5F9;
   --popover: #1E293B;
   --popover-foreground: #F1F5F9;
-  --primary: #3B82F6;
+  --primary: #2B7FFF;
   --primary-foreground: #FFFFFF;
   --secondary: #1E293B;
   --secondary-foreground: #F1F5F9;
@@ -140,8 +142,8 @@
   --destructive: #F87171;
   --border: #334155;
   --input: #334155;
-  --ring: #3B82F6;
-  --chart-1: #3B82F6;
+  --ring: #2B7FFF;
+  --chart-1: #2B7FFF;
   --chart-2: #22D3EE;
   --chart-3: #A78BFA;
   --chart-4: #34D399;
@@ -149,12 +151,12 @@
 
   --sidebar: #1E293B;
   --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #3B82F6;
+  --sidebar-primary: #2B7FFF;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #334155;
   --sidebar-accent-foreground: #F1F5F9;
   --sidebar-border: #334155;
-  --sidebar-ring: #3B82F6;
+  --sidebar-ring: #2B7FFF;
 }
 
 /* ============================================

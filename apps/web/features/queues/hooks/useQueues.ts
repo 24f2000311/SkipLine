@@ -5,14 +5,15 @@ import { useAuthStore } from "@/stores/useAuthStore";
 export const useQueues = (eventId: string) => {
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
 
   return useQuery({
-    queryKey: ["queues", eventId],
+    queryKey: ["organizer-queues", user?.id, eventId],
     queryFn: async () => {
       const response = await queueApi.getByEvent(eventId);
       return response.data;
     },
-    enabled: !!eventId && hasHydrated && !!accessToken,
+    enabled: !!eventId && hasHydrated && !!accessToken && !!user?.id,
   });
 };
 
@@ -54,6 +55,7 @@ export const usePublicQueue = (queueId: string) => {
 
 export const useCreateQueue = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
 
   return useMutation({
     mutationFn: async (data: any) => {
@@ -61,13 +63,15 @@ export const useCreateQueue = () => {
       return response.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["queues", variables.eventId] });
+      queryClient.invalidateQueries({ queryKey: ["organizer-queues", user?.id, variables.eventId] });
+      queryClient.invalidateQueries({ queryKey: ["organizer-queues", user?.id] });
     },
   });
 };
 
 export const useUpdateQueue = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
@@ -76,9 +80,22 @@ export const useUpdateQueue = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["queue", variables.id] });
-      // We might also want to invalidate the queues list, but we need the eventId.
-      // Easiest is to invalidate all queues or pass eventId in variables.
-      queryClient.invalidateQueries({ queryKey: ["queues"] }); 
+      queryClient.invalidateQueries({ queryKey: ["organizer-queues", user?.id] });
+    },
+  });
+};
+
+export const useDeleteQueue = () => {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await queueApi.delete(id);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizer-queues", user?.id] });
     },
   });
 };

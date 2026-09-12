@@ -20,7 +20,7 @@ function QueueCard({ queueId }: { queueId: string }) {
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">{queue.event.name}</p>
             <h3 className="font-bold text-lg leading-tight group-hover:text-blue-600 transition-colors">{queue.name}</h3>
           </div>
-          <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-3 py-1.5 rounded-lg font-black text-lg shadow-inner">
+          <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-3 py-1.5 rounded-lg font-bold tabular-nums text-lg shadow-inner">
             #{status.entry.sequenceNumber}
           </div>
         </div>
@@ -61,7 +61,7 @@ export default function MyQueuesPage() {
       <div className="w-full max-w-md mt-8">
         
         <div className="mb-8">
-          <h1 className="text-3xl font-black text-zinc-900 dark:text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white flex items-center gap-3">
             <Ticket className="h-8 w-8 text-blue-600" />
             My Tickets
           </h1>

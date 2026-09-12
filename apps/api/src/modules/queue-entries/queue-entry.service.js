@@ -511,6 +511,7 @@ export const callNext = async (queueId, organizerId) => {
       where: { id: selectedEntry.id },
       data: {
         status: QUEUE_ENTRY_STATUS.CALLED,
+        callCount: (selectedEntry.callCount || 0) + 1,
         calledAt: now,
       },
       include: { queue: true },
@@ -531,6 +532,8 @@ export const callNext = async (queueId, organizerId) => {
     broadcastToQueue(queueId, "QUEUE_ENTRY_UPDATED", {
       entryId: result.id,
       status: "CALLED",
+      callCount: result.callCount,
+      calledAt: result.calledAt,
     });
   }
 

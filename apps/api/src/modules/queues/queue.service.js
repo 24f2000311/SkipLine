@@ -1,6 +1,7 @@
 import AppError from "../../shared/errors/AppError.js";
 import { queueRepository } from "./queue.repository.js";
 import { eventRepository } from "../events/event.repository.js";
+import { authRepository } from "../auth/auth.repository.js";
 import { broadcastToQueue } from "../../infrastructure/websocket/websocket.server.js";
 
 export const createQueue = async (organizerId, data) => {
@@ -13,6 +14,11 @@ export const createQueue = async (organizerId, data) => {
   const event = await eventRepository.findByIdAndOrganizer(eventId, organizerId);
   if (!event) {
     throw new AppError("Event not found or unauthorized", 404, "EVENT_NOT_FOUND");
+  }
+
+  const organizer = await authRepository.findUserById(organizerId);
+  if (!organizer || !organizer.emailVerifiedAt) {
+    throw new AppError("Email verification required to create queues", 403, "EMAIL_NOT_VERIFIED");
   }
 
   let parsedCapacity = null;
@@ -144,9 +150,5 @@ export const updateQueue = async (id, organizerId, data) => {
 };
 
 export const deleteQueue = async (id, organizerId) => {
-  const queue = await queueRepository.findById(id);
-  if (!queue || queue.event.organizerId !== organizerId) {
-    throw new AppError("Queue not found or unauthorized", 404, "QUEUE_NOT_FOUND");
-  }
-  return queueRepository.delete(id);
+  return queueRepository.deleteQueueTransactional(id, organizerId);
 };

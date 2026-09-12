@@ -18,11 +18,29 @@ test.describe('Customer Journey Flow', () => {
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/organizer\/dashboard/);
 
+    // Verify organizer email so event and queue setup can proceed
+    await page.request.post('http://localhost:8123/api/v1/auth/test-verify', {
+      data: { email: `setup${uniqueId}@example.com` },
+    });
+    await page.reload();
+    await page.waitForURL(/\/organizer\/dashboard/);
+
     // Create Event
+    const now = new Date();
+    const pastDate = new Date(now.getTime() - 60 * 60 * 1000);
+    const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startDate = `${pastDate.getFullYear()}-${pad(pastDate.getMonth() + 1)}-${pad(pastDate.getDate())}`;
+    const startTime = `${pad(pastDate.getHours())}:${pad(pastDate.getMinutes())}`;
+    const endDate = `${futureDate.getFullYear()}-${pad(futureDate.getMonth() + 1)}-${pad(futureDate.getDate())}`;
+    const endTime = `${pad(futureDate.getHours())}:${pad(futureDate.getMinutes())}`;
+
     await page.click('text="Create Event"');
     await page.fill('input[name="name"]', 'Customer Flow Event');
-    await page.fill('input[name="startAt"]', '2026-10-01T09:00');
-    await page.fill('input[name="endAt"]', '2026-10-01T17:00');
+    await page.fill('input[name="startDate"]', startDate);
+    await page.fill('input[name="startTime"]', startTime);
+    await page.fill('input[name="endDate"]', endDate);
+    await page.fill('input[name="endTime"]', endTime);
     await page.click('button[type="submit"]:has-text("Create Event")');
     await page.waitForURL(/\/organizer\/events\/[a-zA-Z0-9-]+/);
     

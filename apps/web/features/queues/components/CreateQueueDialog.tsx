@@ -5,14 +5,17 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateQueue } from "@/features/queues/hooks/useQueues";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { VerificationRequiredDialog } from "@/features/auth/components/VerificationRequiredDialog";
+import { authApi } from "@/lib/api/auth";
 import { PlusCircle, Settings2, Users, Star } from "lucide-react";
+
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,8 +44,36 @@ interface CreateQueueDialogProps {
 export function CreateQueueDialog({ eventId }: CreateQueueDialogProps) {
   const [open, setOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
   const { mutate: createQueue, isPending } = useCreateQueue();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const handleTriggerClick = async (e: React.MouseEvent) => {
+    const current = useAuthStore.getState().user;
+    if (current?.emailVerifiedAt) {
+      setOpen(true);
+      return;
+    }
+
+    // Pre-flight check with backend in case user verified in another tab/window
+    try {
+      const res = await authApi.getMe();
+      const freshUser = res.data?.data || res.data;
+      if (freshUser?.emailVerifiedAt) {
+        useAuthStore.getState().updateUser({ emailVerifiedAt: freshUser.emailVerifiedAt });
+        setOpen(true);
+        return;
+      }
+    } catch {
+      // safe ignore
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    setVerificationDialogOpen(true);
+  };
+
 
   const {
     register,
@@ -96,12 +127,17 @@ export function CreateQueueDialog({ eventId }: CreateQueueDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button className="gap-2 font-bold shadow-sm h-10 bg-sl-blue hover:bg-blue-700 text-white" />}>
+    <>
+      <Button
+        onClick={handleTriggerClick}
+        className="gap-2 font-bold shadow-sm h-10 bg-sl-blue hover:bg-blue-700 text-white"
+      >
         <PlusCircle className="h-4 w-4" />
         Create Queue
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-0 gap-0 border-slate-200 dark:border-slate-800 rounded-2xl">
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-0 gap-0 border-slate-200 dark:border-slate-800 rounded-2xl">
         <DialogHeader className="px-6 py-5 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/20">
           <DialogTitle className="text-xl font-extrabold text-foreground">Create a queue</DialogTitle>
           <DialogDescription className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
@@ -278,5 +314,12 @@ export function CreateQueueDialog({ eventId }: CreateQueueDialogProps) {
         </form>
       </DialogContent>
     </Dialog>
+
+    <VerificationRequiredDialog
+      open={verificationDialogOpen}
+      onOpenChange={setVerificationDialogOpen}
+      actionContext="queue"
+    />
+  </>
   );
 }

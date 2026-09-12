@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   RefreshToken: 'RefreshToken',
+  AuthToken: 'AuthToken',
   Event: 'Event',
   Queue: 'Queue',
   QueueEntry: 'QueueEntry'
@@ -99,6 +100,19 @@ export const RefreshTokenScalarFieldEnum = {
 } as const
 
 export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const AuthTokenScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type AuthTokenScalarFieldEnum = (typeof AuthTokenScalarFieldEnum)[keyof typeof AuthTokenScalarFieldEnum]
 
 
 export const EventScalarFieldEnum = {
@@ -155,6 +169,7 @@ export const QueueEntryScalarFieldEnum = {
   sequenceNumber: 'sequenceNumber',
   requeueAfterCallCount: 'requeueAfterCallCount',
   noShowCount: 'noShowCount',
+  callCount: 'callCount',
   lastNoShowAt: 'lastNoShowAt',
   joinedAt: 'joinedAt',
   calledAt: 'calledAt',

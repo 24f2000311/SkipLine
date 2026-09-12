@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-test.describe.skip('Realtime E2E Interaction', () => {
+test.describe('Realtime E2E Interaction', () => {
   test('should sync status changes between organizer and customer', async ({ browser }) => {
     test.setTimeout(120000); // Allow 120s for this multi-context test
     
-    // ... rest of setup ...
     const orgContext = await browser.newContext();
     const orgPage = await orgContext.newPage();
     const uniqueId = Date.now();
@@ -17,11 +16,22 @@ test.describe.skip('Realtime E2E Interaction', () => {
     await orgPage.click('button[type="submit"]');
     await orgPage.waitForURL(/\/organizer\/dashboard/);
 
+    const now = new Date();
+    const pastDate = new Date(now.getTime() - 60 * 60 * 1000);
+    const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startDate = `${pastDate.getFullYear()}-${pad(pastDate.getMonth() + 1)}-${pad(pastDate.getDate())}`;
+    const startTime = `${pad(pastDate.getHours())}:${pad(pastDate.getMinutes())}`;
+    const endDate = `${futureDate.getFullYear()}-${pad(futureDate.getMonth() + 1)}-${pad(futureDate.getDate())}`;
+    const endTime = `${pad(futureDate.getHours())}:${pad(futureDate.getMinutes())}`;
+
     // Organizer Creates Event & Queue
     await orgPage.click('text="Create Event"');
     await orgPage.fill('input[name="name"]', 'Realtime Event');
-    await orgPage.fill('input[name="startAt"]', '2026-10-01T09:00');
-    await orgPage.fill('input[name="endAt"]', '2026-10-01T17:00');
+    await orgPage.fill('input[name="startDate"]', startDate);
+    await orgPage.fill('input[name="startTime"]', startTime);
+    await orgPage.fill('input[name="endDate"]', endDate);
+    await orgPage.fill('input[name="endTime"]', endTime);
     await orgPage.click('button[type="submit"]:has-text("Create Event")');
     await orgPage.waitForURL(/\/organizer\/events\/[a-zA-Z0-9-]+/);
     

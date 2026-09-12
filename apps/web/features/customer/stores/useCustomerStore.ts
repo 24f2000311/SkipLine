@@ -8,6 +8,8 @@ interface QueueEntryState {
   notified1Ahead?: boolean;
   notifiedCalled?: boolean;
   acknowledgedCalled?: boolean;
+  lastNotifiedCallCount?: number;
+  acknowledgedCallCount?: number;
 }
 
 interface CustomerState {

@@ -16,6 +16,13 @@ test.describe('Organizer Event & Queue Lifecycle', () => {
     await page.fill('input[name="password"]', testUser.password);
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/organizer\/dashboard/);
+
+    // Verify email for lifecycle tests and reload to reconcile auth
+    await page.request.post('http://localhost:8123/api/v1/auth/test-verify', {
+      data: { email: testUser.email },
+    });
+    await page.reload();
+    await expect(page).toHaveURL(/\/organizer\/dashboard/);
   });
 
   test('should create an event, progress to live, and create a queue', async ({ page }) => {
@@ -25,8 +32,20 @@ test.describe('Organizer Event & Queue Lifecycle', () => {
     
     await page.fill('input[name="name"]', 'My E2E Event');
     await page.fill('input[name="description"]', 'Event for automated tests');
-    await page.fill('input[name="startAt"]', '2026-10-01T09:00');
-    await page.fill('input[name="endAt"]', '2026-10-01T17:00');
+    
+    const now = new Date();
+    const pastDate = new Date(now.getTime() - 60 * 60 * 1000);
+    const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startDate = `${pastDate.getFullYear()}-${pad(pastDate.getMonth() + 1)}-${pad(pastDate.getDate())}`;
+    const startTime = `${pad(pastDate.getHours())}:${pad(pastDate.getMinutes())}`;
+    const endDate = `${futureDate.getFullYear()}-${pad(futureDate.getMonth() + 1)}-${pad(futureDate.getDate())}`;
+    const endTime = `${pad(futureDate.getHours())}:${pad(futureDate.getMinutes())}`;
+
+    await page.fill('input[name="startDate"]', startDate);
+    await page.fill('input[name="startTime"]', startTime);
+    await page.fill('input[name="endDate"]', endDate);
+    await page.fill('input[name="endTime"]', endTime);
     await page.click('button[type="submit"]:has-text("Create Event")');
     
     // Should navigate to event details page
@@ -66,6 +85,7 @@ test.describe('Organizer Event & Queue Lifecycle', () => {
     await page.locator('nav[aria-label="Breadcrumb"] a', { hasText: 'Event' }).click();
     await expect(page.locator('h1')).toContainText('My E2E Event', { timeout: 10000 });
     await page.click('button:has-text("Complete Event")');
+    await page.click('button:has-text("Yes, complete event")');
     await expect(page.locator('span', { hasText: 'COMPLETED' })).toBeVisible({ timeout: 10000 });
   });
 });

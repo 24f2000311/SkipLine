@@ -100,4 +100,105 @@ export const authController = {
       next(error);
     }
   },
+
+  /**
+   * Verify email address with single-use token.
+   * POST /api/v1/auth/verify-email
+   */
+  async verifyEmail(req, res, next) {
+    try {
+      const { token } = req.body;
+      const result = await authService.verifyEmail(token);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: {
+          user: result.user,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+
+  /**
+   * Resend verification email to unverified user.
+   * POST /api/v1/auth/resend-verification
+   */
+  async resendVerification(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await authService.resendVerification(email);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Request password reset link.
+   * POST /api/v1/auth/forgot-password
+   */
+  async forgotPassword(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await authService.forgotPassword(email);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Reset password using reset token.
+   * POST /api/v1/auth/reset-password
+   */
+  async resetPassword(req, res, next) {
+    try {
+      const { token, password } = req.body;
+      const result = await authService.resetPassword({ token, password });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Permanently delete organizer account and all owned data.
+   * DELETE /api/v1/auth/account
+   */
+  async deleteAccount(req, res, next) {
+    try {
+      // Identity derived exclusively from req.user.id (never from body/query/params)
+      const userId = req.user.id;
+      const { password } = req.body || {};
+
+      await authService.deleteAccount({
+        userId,
+        password,
+        requestId: req.id,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Account and all owned data permanently deleted.",
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

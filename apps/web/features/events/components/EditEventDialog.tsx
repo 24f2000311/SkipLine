@@ -129,7 +129,7 @@ export function EditEventDialog({ event }: { event: any }) {
           
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+              <Label htmlFor="name" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">
                 Event Name <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -147,7 +147,7 @@ export function EditEventDialog({ event }: { event: any }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+              <Label htmlFor="description" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">
                 Description
               </Label>
               <Input
@@ -159,7 +159,7 @@ export function EditEventDialog({ event }: { event: any }) {
             </div>
             
             <div className="space-y-1.5">
-              <Label htmlFor="venue" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+              <Label htmlFor="venue" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">
                 Venue Name
               </Label>
               <Input
@@ -171,7 +171,7 @@ export function EditEventDialog({ event }: { event: any }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="venueMapUrl" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+              <Label htmlFor="venueMapUrl" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">
                 Google Maps URL
               </Label>
               <Input
@@ -194,7 +194,7 @@ export function EditEventDialog({ event }: { event: any }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="startDate" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                <Label htmlFor="startDate" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">
                   Start Date <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -205,7 +205,7 @@ export function EditEventDialog({ event }: { event: any }) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="startTime" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                <Label htmlFor="startTime" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">
                   Start Time <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -219,7 +219,7 @@ export function EditEventDialog({ event }: { event: any }) {
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="endDate" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                <Label htmlFor="endDate" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">
                   End Date <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -230,7 +230,7 @@ export function EditEventDialog({ event }: { event: any }) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="endTime" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                <Label htmlFor="endTime" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">
                   End Time <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -267,7 +267,7 @@ export function EditEventDialog({ event }: { event: any }) {
             </Button>
             <Button 
               type="submit" 
-              className="flex-1 h-12 rounded-xl font-black bg-sl-blue hover:bg-blue-700 text-white"
+              className="flex-1 h-12 rounded-xl font-bold bg-sl-blue hover:bg-blue-700 text-white"
               disabled={isPending}
             >
               {isPending ? (

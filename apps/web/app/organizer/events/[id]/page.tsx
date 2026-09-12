@@ -9,8 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQueues } from "@/features/queues/hooks/useQueues";
 import { CreateQueueDialog } from "@/features/queues/components/CreateQueueDialog";
 import { EditQueueDialog } from "@/features/queues/components/EditQueueDialog";
+import { ShareQrDialog } from "@/features/queues/components/ShareQrDialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useState } from "react";
+import { getGoogleMapsUrl } from "@/lib/url";
 
 import { EditEventDialog } from "@/features/events/components/EditEventDialog";
 
@@ -23,26 +25,38 @@ export default function EventDetailsPage() {
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent();
   const { mutate: updateEvent, isPending: isUpdating } = useUpdateEvent();
 
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const handleUpdateStatus = (newStatus: string) => {
+    setActionError(null);
     updateEvent({ id, data: { status: newStatus } }, {
-      onError: () => {
-        alert("Something went wrong while updating the event. Please try again.");
+      onSuccess: () => {
+        setShowCompleteConfirm(false);
+        setShowCancelConfirm(false);
+      },
+      onError: (error: any) => {
+        const message = error?.response?.data?.error?.message || "Something went wrong while updating the event. Please try again.";
+        setActionError(message);
+        setShowCompleteConfirm(false);
+        setShowCancelConfirm(false);
       }
     });
   };
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-
   const handleDeleteEvent = () => {
+    setActionError(null);
     deleteEvent(id, {
       onSuccess: () => {
         setShowDeleteConfirm(false);
         router.push("/organizer/dashboard");
       },
       onError: (error: any) => {
-        const message = error?.response?.data?.error?.message || "Something went wrong while deleting the event. Please try again.";
-        alert(message);
+        const message = error?.response?.data?.error?.message || "Something went wrong while deleting the event. Please check event status and history.";
+        setActionError(message);
+        setShowDeleteConfirm(false);
       }
     });
   };
@@ -64,7 +78,7 @@ export default function EventDetailsPage() {
         <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${isNotFound ? 'bg-slate-100 dark:bg-slate-900 text-slate-400' : 'bg-red-50 dark:bg-red-900/20 text-sl-error'}`}>
           {isNotFound ? <SearchX className="h-8 w-8" /> : <AlertCircle className="h-8 w-8" />}
         </div>
-        <h2 className="text-2xl font-black text-foreground tracking-tight">
+        <h2 className="text-2xl font-bold text-foreground tracking-tight">
           {isNotFound ? "Event not found" : "Something went wrong"}
         </h2>
         <p className="text-muted-foreground font-medium max-w-sm mb-4">
@@ -85,9 +99,12 @@ export default function EventDetailsPage() {
 
   const isLive = event.status === 'LIVE';
   const isDraft = event.status === 'DRAFT';
+  const isScheduled = event.status === 'SCHEDULED';
   const now = new Date();
+  const isBeforeStart = new Date(event.startAt).getTime() > now.getTime();
   const isEventEnded = new Date(event.endAt) <= now || event.status === 'COMPLETED';
   const isEventCancelled = event.status === 'CANCELLED';
+  const googleMapsUrl = event.venue ? getGoogleMapsUrl({ venue: event.venue, venueMapUrl: event.venueMapUrl }) : null;
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
@@ -111,7 +128,7 @@ export default function EventDetailsPage() {
           </h1>
           
           <div className="flex flex-wrap items-center gap-4 text-[13px] font-medium text-slate-500 dark:text-slate-400">
-            <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
+            <span className={`px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-[0.08em] ${
               isLive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' :
               isDraft ? 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700' :
               'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700'
@@ -120,12 +137,12 @@ export default function EventDetailsPage() {
             </span>
 
             {isEventCancelled && (
-              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/40 dark:text-red-400">
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-[0.08em] bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/40 dark:text-red-400">
                 Event Cancelled
               </span>
             )}
             {isEventEnded && !isEventCancelled && (
-              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300">
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-[0.08em] bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300">
                 Event Ended
               </span>
             )}
@@ -133,8 +150,8 @@ export default function EventDetailsPage() {
             {event.venue && (
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 shrink-0" />
-                {event.venueMapUrl ? (
-                  <a href={event.venueMapUrl} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-sl-blue transition-colors">
+                {googleMapsUrl ? (
+                  <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-sl-blue transition-colors">
                     {event.venue}
                   </a>
                 ) : (
@@ -155,20 +172,28 @@ export default function EventDetailsPage() {
         
         {/* Right: Lifecycle Controls */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {isDraft && (
-            <Button 
-              onClick={() => handleUpdateStatus('LIVE')} 
-              disabled={isUpdating}
-              className="gap-2 bg-sl-blue hover:bg-blue-700 font-bold shadow-sm flex-1 md:flex-none"
-            >
-              <Play className="h-4 w-4" />
-              {isUpdating ? "Updating..." : "Start Event"}
-            </Button>
+          {(isDraft || isScheduled) && (
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => handleUpdateStatus('LIVE')} 
+                disabled={isUpdating || isBeforeStart}
+                title={isBeforeStart ? `Scheduled to start at ${new Date(event.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined}
+                className="gap-2 bg-sl-blue hover:bg-blue-700 font-bold shadow-sm flex-1 md:flex-none disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Play className="h-4 w-4" />
+                {isUpdating ? "Updating..." : "Start Event"}
+              </Button>
+              {isBeforeStart && (
+                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+                  Starts {new Date(event.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
           )}
           
           {isLive && !isEventEnded && (
             <Button 
-              onClick={() => handleUpdateStatus('COMPLETED')} 
+              onClick={() => setShowCompleteConfirm(true)} 
               disabled={isUpdating}
               className="gap-2 bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 font-bold flex-1 md:flex-none"
             >
@@ -207,26 +232,58 @@ export default function EventDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Domain Error Banner */}
+      {actionError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/40 text-red-700 dark:text-red-300 flex items-start justify-between gap-3 animate-sl-fade-in shadow-xs">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+            <div>
+              <h4 className="text-sm font-bold">Action Cannot Be Completed</h4>
+              <p className="text-xs mt-0.5 leading-relaxed">{actionError}</p>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setActionError(null)} 
+            className="text-xs font-bold text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40"
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
+
+      {/* Complete Event Confirmation */}
+      <ConfirmDialog 
+        isOpen={showCompleteConfirm}
+        onOpenChange={setShowCompleteConfirm}
+        title="Complete this event?"
+        description="Completing this event ends the active queue experience while preserving participant history, queue logs, and analytics. This action cannot be undone."
+        onConfirm={() => handleUpdateStatus('COMPLETED')}
+        isPending={isUpdating}
+        confirmText="Yes, complete event"
+        variant="default"
+      />
       
+      {/* Delete Event Confirmation */}
       <ConfirmDialog 
         isOpen={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title="Delete Event"
-        description="Are you sure you want to delete this event? All associated queues and entries will also be deleted. This cannot be undone."
+        description="Are you sure you want to permanently delete this event? Only draft or scheduled events with no participant history can be deleted. This cannot be undone."
         onConfirm={handleDeleteEvent}
         isPending={isDeleting}
         confirmText="Yes, delete event"
       />
       
+      {/* Cancel Event Confirmation */}
       <ConfirmDialog 
         isOpen={showCancelConfirm}
         onOpenChange={setShowCancelConfirm}
         title="Cancel Event"
         description="Are you sure you want to cancel this event? Customers will no longer be able to join any queues."
-        onConfirm={() => {
-          handleUpdateStatus('CANCELLED');
-          setShowCancelConfirm(false);
-        }}
+        onConfirm={() => handleUpdateStatus('CANCELLED')}
         isPending={isUpdating}
         confirmText="Yes, cancel event"
       />
@@ -274,7 +331,7 @@ export default function EventDetailsPage() {
 
                 return (
                   <div key={queueStatus} className="space-y-3 animate-sl-fade-in">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] flex items-center gap-2">
                       {queueStatus === 'OPEN' && (
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
@@ -312,6 +369,12 @@ export default function EventDetailsPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 mt-4 sm:mt-0 w-full sm:w-auto">
+                              <ShareQrDialog 
+                                queueId={queue.id} 
+                                queueName={queue.name} 
+                                queueDescription={queue.description} 
+                                event={event} 
+                              />
                               <EditQueueDialog queue={queue} />
                               <Link href={`/organizer/events/${id}/queues/${queue.id}`} className="flex-1 sm:flex-none">
                                 <Button variant={isOpen ? 'default' : 'secondary'} size="sm" className={`w-full font-bold h-9 ${isOpen ? 'bg-sl-blue text-white hover:bg-blue-700 shadow-sm' : ''}`}>

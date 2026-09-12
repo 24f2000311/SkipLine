@@ -43,9 +43,13 @@ export default function LoginPage() {
     setServerError(null);
     login(data, {
       onError: (err: any) => {
+        if (err?.response?.status === 401 || err?.response?.data?.error?.code === "INVALID_CREDENTIALS") {
+          setServerError("Email or password is incorrect. Please try again.");
+          return;
+        }
         const errorMsg =
-          err?.message ||
           err?.response?.data?.error?.message ||
+          err?.message ||
           "Email or password is incorrect. Please try again.";
         setServerError(errorMsg);
       },
@@ -99,9 +103,17 @@ export default function LoginPage() {
 
               {/* Password Field */}
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Password
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Password
+                  </Label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-semibold text-sl-blue hover:text-blue-700 dark:hover:text-blue-400 hover:underline transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"

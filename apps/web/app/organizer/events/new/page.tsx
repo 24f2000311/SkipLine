@@ -5,9 +5,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateEvent } from "@/features/events/hooks/useEvents";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { authApi } from "@/lib/api/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, CalendarPlus } from "lucide-react";
+import { ArrowLeft, Loader2, CalendarPlus, Mail, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,8 +36,25 @@ type EventFormValues = z.infer<typeof eventSchema>;
 
 export default function CreateEventPage() {
   const { mutate: createEvent, isPending } = useCreateEvent();
+  const user = useAuthStore((state) => state.user);
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+
+  const handleResend = async () => {
+    if (!user?.email || isResending) return;
+    setIsResending(true);
+    try {
+      await authApi.resendVerification(user.email);
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 5000);
+    } catch (e) {
+      // ignore
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const {
     register,
@@ -44,6 +63,84 @@ export default function CreateEventPage() {
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
   });
+
+  if (user && !user.emailVerifiedAt) {
+    return (
+      <div className="max-w-2xl mx-auto pb-12 animate-sl-fade-in">
+        <div className="flex items-center gap-3 mb-8">
+          <Link href="/organizer/dashboard">
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+              Create Event
+            </h1>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="h-1.5 w-full bg-[#1868F8]" />
+          <div className="p-8 sm:p-10 space-y-6 text-center flex flex-col items-center">
+            <div className="h-14 w-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-[#1868F8] border border-blue-100 dark:border-blue-900/50 flex items-center justify-center">
+              <Mail className="h-7 w-7" />
+            </div>
+            
+            <div className="space-y-2 max-w-md">
+              <div className="text-xs font-bold text-[#1868F8] uppercase tracking-wider">
+                ✦ Account Setup
+              </div>
+              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+                Verify your email to create events
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                Your account is ready, but you need to verify your email address before creating events or queues.
+              </p>
+            </div>
+
+            {user.email && (
+              <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 text-xs font-medium text-slate-600 dark:text-slate-400">
+                Verification link sent to <span className="font-semibold text-slate-900 dark:text-white">{user.email}</span>
+              </div>
+            )}
+
+            {resendSuccess && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-semibold flex items-center gap-2 border border-emerald-200 dark:border-emerald-800/40">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span>Verification email sent! Please check your inbox.</span>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 w-full max-w-xs">
+              <Button
+                onClick={handleResend}
+                disabled={isResending}
+                className="w-full h-11 font-bold bg-[#1868F8] hover:bg-blue-700 text-white rounded-lg shadow-sm"
+              >
+                {isResending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : resendSuccess ? (
+                  "Resend again"
+                ) : (
+                  "Resend verification email"
+                )}
+              </Button>
+
+              <Link href="/organizer/dashboard" className="w-full">
+                <Button variant="outline" className="w-full h-11 font-semibold rounded-lg">
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const onSubmit = (data: EventFormValues) => {
     setServerError(null);

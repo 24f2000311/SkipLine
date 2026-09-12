@@ -13,4 +13,20 @@ export const authApi = {
   getMe: async () => {
     return apiClient.get("/auth/me");
   },
+  verifyEmail: async (token: string) => {
+    return apiClient.post("/auth/verify-email", { token });
+  },
+  resendVerification: async (email: string) => {
+    return apiClient.post("/auth/resend-verification", { email });
+  },
+  forgotPassword: async (email: string) => {
+    return apiClient.post("/auth/forgot-password", { email });
+  },
+  resetPassword: async (data: { token: string; password: string }) => {
+    return apiClient.post("/auth/reset-password", data);
+  },
+  deleteAccount: async (password: string) => {
+    return apiClient.delete("/auth/account", { data: { password } });
+  },
 };
+

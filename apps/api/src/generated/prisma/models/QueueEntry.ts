@@ -30,12 +30,14 @@ export type QueueEntryAvgAggregateOutputType = {
   sequenceNumber: number | null
   requeueAfterCallCount: number | null
   noShowCount: number | null
+  callCount: number | null
 }
 
 export type QueueEntrySumAggregateOutputType = {
   sequenceNumber: bigint | null
   requeueAfterCallCount: number | null
   noShowCount: number | null
+  callCount: number | null
 }
 
 export type QueueEntryMinAggregateOutputType = {
@@ -52,6 +54,7 @@ export type QueueEntryMinAggregateOutputType = {
   sequenceNumber: bigint | null
   requeueAfterCallCount: number | null
   noShowCount: number | null
+  callCount: number | null
   lastNoShowAt: Date | null
   joinedAt: Date | null
   calledAt: Date | null
@@ -76,6 +79,7 @@ export type QueueEntryMaxAggregateOutputType = {
   sequenceNumber: bigint | null
   requeueAfterCallCount: number | null
   noShowCount: number | null
+  callCount: number | null
   lastNoShowAt: Date | null
   joinedAt: Date | null
   calledAt: Date | null
@@ -100,6 +104,7 @@ export type QueueEntryCountAggregateOutputType = {
   sequenceNumber: number
   requeueAfterCallCount: number
   noShowCount: number
+  callCount: number
   lastNoShowAt: number
   joinedAt: number
   calledAt: number
@@ -116,12 +121,14 @@ export type QueueEntryAvgAggregateInputType = {
   sequenceNumber?: true
   requeueAfterCallCount?: true
   noShowCount?: true
+  callCount?: true
 }
 
 export type QueueEntrySumAggregateInputType = {
   sequenceNumber?: true
   requeueAfterCallCount?: true
   noShowCount?: true
+  callCount?: true
 }
 
 export type QueueEntryMinAggregateInputType = {
@@ -138,6 +145,7 @@ export type QueueEntryMinAggregateInputType = {
   sequenceNumber?: true
   requeueAfterCallCount?: true
   noShowCount?: true
+  callCount?: true
   lastNoShowAt?: true
   joinedAt?: true
   calledAt?: true
@@ -162,6 +170,7 @@ export type QueueEntryMaxAggregateInputType = {
   sequenceNumber?: true
   requeueAfterCallCount?: true
   noShowCount?: true
+  callCount?: true
   lastNoShowAt?: true
   joinedAt?: true
   calledAt?: true
@@ -186,6 +195,7 @@ export type QueueEntryCountAggregateInputType = {
   sequenceNumber?: true
   requeueAfterCallCount?: true
   noShowCount?: true
+  callCount?: true
   lastNoShowAt?: true
   joinedAt?: true
   calledAt?: true
@@ -297,6 +307,7 @@ export type QueueEntryGroupByOutputType = {
   sequenceNumber: bigint
   requeueAfterCallCount: number | null
   noShowCount: number
+  callCount: number
   lastNoShowAt: Date | null
   joinedAt: Date
   calledAt: Date | null
@@ -344,6 +355,7 @@ export type QueueEntryWhereInput = {
   sequenceNumber?: Prisma.BigIntFilter<"QueueEntry"> | bigint | number
   requeueAfterCallCount?: Prisma.IntNullableFilter<"QueueEntry"> | number | null
   noShowCount?: Prisma.IntFilter<"QueueEntry"> | number
+  callCount?: Prisma.IntFilter<"QueueEntry"> | number
   lastNoShowAt?: Prisma.DateTimeNullableFilter<"QueueEntry"> | Date | string | null
   joinedAt?: Prisma.DateTimeFilter<"QueueEntry"> | Date | string
   calledAt?: Prisma.DateTimeNullableFilter<"QueueEntry"> | Date | string | null
@@ -369,6 +381,7 @@ export type QueueEntryOrderByWithRelationInput = {
   sequenceNumber?: Prisma.SortOrder
   requeueAfterCallCount?: Prisma.SortOrderInput | Prisma.SortOrder
   noShowCount?: Prisma.SortOrder
+  callCount?: Prisma.SortOrder
   lastNoShowAt?: Prisma.SortOrderInput | Prisma.SortOrder
   joinedAt?: Prisma.SortOrder
   calledAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -397,6 +410,7 @@ export type QueueEntryWhereUniqueInput = Prisma.AtLeast<{
   sequenceNumber?: Prisma.BigIntFilter<"QueueEntry"> | bigint | number
   requeueAfterCallCount?: Prisma.IntNullableFilter<"QueueEntry"> | number | null
   noShowCount?: Prisma.IntFilter<"QueueEntry"> | number
+  callCount?: Prisma.IntFilter<"QueueEntry"> | number
   lastNoShowAt?: Prisma.DateTimeNullableFilter<"QueueEntry"> | Date | string | null
   joinedAt?: Prisma.DateTimeFilter<"QueueEntry"> | Date | string
   calledAt?: Prisma.DateTimeNullableFilter<"QueueEntry"> | Date | string | null
@@ -422,6 +436,7 @@ export type QueueEntryOrderByWithAggregationInput = {
   sequenceNumber?: Prisma.SortOrder
   requeueAfterCallCount?: Prisma.SortOrderInput | Prisma.SortOrder
   noShowCount?: Prisma.SortOrder
+  callCount?: Prisma.SortOrder
   lastNoShowAt?: Prisma.SortOrderInput | Prisma.SortOrder
   joinedAt?: Prisma.SortOrder
   calledAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -454,6 +469,7 @@ export type QueueEntryScalarWhereWithAggregatesInput = {
   sequenceNumber?: Prisma.BigIntWithAggregatesFilter<"QueueEntry"> | bigint | number
   requeueAfterCallCount?: Prisma.IntNullableWithAggregatesFilter<"QueueEntry"> | number | null
   noShowCount?: Prisma.IntWithAggregatesFilter<"QueueEntry"> | number
+  callCount?: Prisma.IntWithAggregatesFilter<"QueueEntry"> | number
   lastNoShowAt?: Prisma.DateTimeNullableWithAggregatesFilter<"QueueEntry"> | Date | string | null
   joinedAt?: Prisma.DateTimeWithAggregatesFilter<"QueueEntry"> | Date | string
   calledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"QueueEntry"> | Date | string | null
@@ -477,6 +493,7 @@ export type QueueEntryCreateInput = {
   sequenceNumber: bigint | number
   requeueAfterCallCount?: number | null
   noShowCount?: number
+  callCount?: number
   lastNoShowAt?: Date | string | null
   joinedAt?: Date | string
   calledAt?: Date | string | null
@@ -502,6 +519,7 @@ export type QueueEntryUncheckedCreateInput = {
   sequenceNumber: bigint | number
   requeueAfterCallCount?: number | null
   noShowCount?: number
+  callCount?: number
   lastNoShowAt?: Date | string | null
   joinedAt?: Date | string
   calledAt?: Date | string | null
@@ -525,6 +543,7 @@ export type QueueEntryUpdateInput = {
   sequenceNumber?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   requeueAfterCallCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   noShowCount?: Prisma.IntFieldUpdateOperationsInput | number
+  callCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastNoShowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   joinedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -550,6 +569,7 @@ export type QueueEntryUncheckedUpdateInput = {
   sequenceNumber?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   requeueAfterCallCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   noShowCount?: Prisma.IntFieldUpdateOperationsInput | number
+  callCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastNoShowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   joinedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -574,6 +594,7 @@ export type QueueEntryCreateManyInput = {
   sequenceNumber: bigint | number
   requeueAfterCallCount?: number | null
   noShowCount?: number
+  callCount?: number
   lastNoShowAt?: Date | string | null
   joinedAt?: Date | string
   calledAt?: Date | string | null
@@ -597,6 +618,7 @@ export type QueueEntryUpdateManyMutationInput = {
   sequenceNumber?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   requeueAfterCallCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   noShowCount?: Prisma.IntFieldUpdateOperationsInput | number
+  callCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastNoShowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   joinedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -621,6 +643,7 @@ export type QueueEntryUncheckedUpdateManyInput = {
   sequenceNumber?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   requeueAfterCallCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   noShowCount?: Prisma.IntFieldUpdateOperationsInput | number
+  callCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastNoShowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   joinedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -655,6 +678,7 @@ export type QueueEntryCountOrderByAggregateInput = {
   sequenceNumber?: Prisma.SortOrder
   requeueAfterCallCount?: Prisma.SortOrder
   noShowCount?: Prisma.SortOrder
+  callCount?: Prisma.SortOrder
   lastNoShowAt?: Prisma.SortOrder
   joinedAt?: Prisma.SortOrder
   calledAt?: Prisma.SortOrder
@@ -669,6 +693,7 @@ export type QueueEntryAvgOrderByAggregateInput = {
   sequenceNumber?: Prisma.SortOrder
   requeueAfterCallCount?: Prisma.SortOrder
   noShowCount?: Prisma.SortOrder
+  callCount?: Prisma.SortOrder
 }
 
 export type QueueEntryMaxOrderByAggregateInput = {
@@ -685,6 +710,7 @@ export type QueueEntryMaxOrderByAggregateInput = {
   sequenceNumber?: Prisma.SortOrder
   requeueAfterCallCount?: Prisma.SortOrder
   noShowCount?: Prisma.SortOrder
+  callCount?: Prisma.SortOrder
   lastNoShowAt?: Prisma.SortOrder
   joinedAt?: Prisma.SortOrder
   calledAt?: Prisma.SortOrder
@@ -709,6 +735,7 @@ export type QueueEntryMinOrderByAggregateInput = {
   sequenceNumber?: Prisma.SortOrder
   requeueAfterCallCount?: Prisma.SortOrder
   noShowCount?: Prisma.SortOrder
+  callCount?: Prisma.SortOrder
   lastNoShowAt?: Prisma.SortOrder
   joinedAt?: Prisma.SortOrder
   calledAt?: Prisma.SortOrder
@@ -723,6 +750,7 @@ export type QueueEntrySumOrderByAggregateInput = {
   sequenceNumber?: Prisma.SortOrder
   requeueAfterCallCount?: Prisma.SortOrder
   noShowCount?: Prisma.SortOrder
+  callCount?: Prisma.SortOrder
 }
 
 export type QueueEntryCreateNestedManyWithoutQueueInput = {
@@ -800,6 +828,7 @@ export type QueueEntryCreateWithoutQueueInput = {
   sequenceNumber: bigint | number
   requeueAfterCallCount?: number | null
   noShowCount?: number
+  callCount?: number
   lastNoShowAt?: Date | string | null
   joinedAt?: Date | string
   calledAt?: Date | string | null
@@ -823,6 +852,7 @@ export type QueueEntryUncheckedCreateWithoutQueueInput = {
   sequenceNumber: bigint | number
   requeueAfterCallCount?: number | null
   noShowCount?: number
+  callCount?: number
   lastNoShowAt?: Date | string | null
   joinedAt?: Date | string
   calledAt?: Date | string | null
@@ -876,6 +906,7 @@ export type QueueEntryScalarWhereInput = {
   sequenceNumber?: Prisma.BigIntFilter<"QueueEntry"> | bigint | number
   requeueAfterCallCount?: Prisma.IntNullableFilter<"QueueEntry"> | number | null
   noShowCount?: Prisma.IntFilter<"QueueEntry"> | number
+  callCount?: Prisma.IntFilter<"QueueEntry"> | number
   lastNoShowAt?: Prisma.DateTimeNullableFilter<"QueueEntry"> | Date | string | null
   joinedAt?: Prisma.DateTimeFilter<"QueueEntry"> | Date | string
   calledAt?: Prisma.DateTimeNullableFilter<"QueueEntry"> | Date | string | null
@@ -899,6 +930,7 @@ export type QueueEntryCreateManyQueueInput = {
   sequenceNumber: bigint | number
   requeueAfterCallCount?: number | null
   noShowCount?: number
+  callCount?: number
   lastNoShowAt?: Date | string | null
   joinedAt?: Date | string
   calledAt?: Date | string | null
@@ -922,6 +954,7 @@ export type QueueEntryUpdateWithoutQueueInput = {
   sequenceNumber?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   requeueAfterCallCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   noShowCount?: Prisma.IntFieldUpdateOperationsInput | number
+  callCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastNoShowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   joinedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -945,6 +978,7 @@ export type QueueEntryUncheckedUpdateWithoutQueueInput = {
   sequenceNumber?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   requeueAfterCallCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   noShowCount?: Prisma.IntFieldUpdateOperationsInput | number
+  callCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastNoShowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   joinedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -968,6 +1002,7 @@ export type QueueEntryUncheckedUpdateManyWithoutQueueInput = {
   sequenceNumber?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   requeueAfterCallCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   noShowCount?: Prisma.IntFieldUpdateOperationsInput | number
+  callCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastNoShowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   joinedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -994,6 +1029,7 @@ export type QueueEntrySelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   sequenceNumber?: boolean
   requeueAfterCallCount?: boolean
   noShowCount?: boolean
+  callCount?: boolean
   lastNoShowAt?: boolean
   joinedAt?: boolean
   calledAt?: boolean
@@ -1019,6 +1055,7 @@ export type QueueEntrySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   sequenceNumber?: boolean
   requeueAfterCallCount?: boolean
   noShowCount?: boolean
+  callCount?: boolean
   lastNoShowAt?: boolean
   joinedAt?: boolean
   calledAt?: boolean
@@ -1044,6 +1081,7 @@ export type QueueEntrySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   sequenceNumber?: boolean
   requeueAfterCallCount?: boolean
   noShowCount?: boolean
+  callCount?: boolean
   lastNoShowAt?: boolean
   joinedAt?: boolean
   calledAt?: boolean
@@ -1069,6 +1107,7 @@ export type QueueEntrySelectScalar = {
   sequenceNumber?: boolean
   requeueAfterCallCount?: boolean
   noShowCount?: boolean
+  callCount?: boolean
   lastNoShowAt?: boolean
   joinedAt?: boolean
   calledAt?: boolean
@@ -1079,7 +1118,7 @@ export type QueueEntrySelectScalar = {
   updatedAt?: boolean
 }
 
-export type QueueEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "queueId" | "token" | "accessTokenHash" | "sessionId" | "customerName" | "customerPhone" | "priority" | "origin" | "status" | "sequenceNumber" | "requeueAfterCallCount" | "noShowCount" | "lastNoShowAt" | "joinedAt" | "calledAt" | "servingAt" | "completedAt" | "cancelledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["queueEntry"]>
+export type QueueEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "queueId" | "token" | "accessTokenHash" | "sessionId" | "customerName" | "customerPhone" | "priority" | "origin" | "status" | "sequenceNumber" | "requeueAfterCallCount" | "noShowCount" | "callCount" | "lastNoShowAt" | "joinedAt" | "calledAt" | "servingAt" | "completedAt" | "cancelledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["queueEntry"]>
 export type QueueEntryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   queue?: boolean | Prisma.QueueDefaultArgs<ExtArgs>
 }
@@ -1109,6 +1148,7 @@ export type $QueueEntryPayload<ExtArgs extends runtime.Types.Extensions.Internal
     sequenceNumber: bigint
     requeueAfterCallCount: number | null
     noShowCount: number
+    callCount: number
     lastNoShowAt: Date | null
     joinedAt: Date
     calledAt: Date | null
@@ -1554,6 +1594,7 @@ export interface QueueEntryFieldRefs {
   readonly sequenceNumber: Prisma.FieldRef<"QueueEntry", 'BigInt'>
   readonly requeueAfterCallCount: Prisma.FieldRef<"QueueEntry", 'Int'>
   readonly noShowCount: Prisma.FieldRef<"QueueEntry", 'Int'>
+  readonly callCount: Prisma.FieldRef<"QueueEntry", 'Int'>
   readonly lastNoShowAt: Prisma.FieldRef<"QueueEntry", 'DateTime'>
   readonly joinedAt: Prisma.FieldRef<"QueueEntry", 'DateTime'>
   readonly calledAt: Prisma.FieldRef<"QueueEntry", 'DateTime'>

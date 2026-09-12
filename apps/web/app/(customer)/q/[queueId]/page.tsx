@@ -53,7 +53,11 @@ export default function CustomerQueuePage() {
   };
 
   const handleAcknowledge = () => {
-    updateNotificationState(queueId, { acknowledgedCalled: true });
+    const currentCallCount = status?.entry?.callCount || 1;
+    updateNotificationState(queueId, {
+      acknowledgedCalled: true,
+      acknowledgedCallCount: currentCallCount,
+    });
   };
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -114,7 +118,7 @@ export default function CustomerQueuePage() {
         {/* ================= HEADER ================= */}
         <div className="bg-slate-900 dark:bg-slate-950 text-white p-6 pb-8 rounded-b-[2rem] relative z-10 border-b border-slate-800">
           <div className="flex justify-between items-start mb-4">
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold uppercase tracking-[0.08em]">
               <MapPin className="h-3.5 w-3.5 text-sl-cyan" />
               {queue.event.venueMapUrl ? (
                 <a href={queue.event.venueMapUrl} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-sl-cyan transition-colors line-clamp-1">
@@ -126,26 +130,26 @@ export default function CustomerQueuePage() {
             </div>
             
             {status && (
-              <Link href="/q" className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition-colors">
+              <Link href="/q" className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition-colors">
                 <Ticket className="h-3.5 w-3.5" />
                 Tickets
               </Link>
             )}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black leading-tight tracking-tight">{queue.name}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight tracking-tight">{queue.name}</h1>
           
           <div className="flex items-center gap-3 mt-4">
-            <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded text-xs font-bold tracking-wide">
+            <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded text-xs font-semibold tabular-nums tracking-wide">
               <Users className="h-3.5 w-3.5 text-sl-cyan" />
               {queue._count.entries} Waiting
             </div>
             {queue.status === "PAUSED" && (
-              <div className="flex items-center gap-1.5 bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded text-xs font-black uppercase tracking-widest">
+              <div className="flex items-center gap-1.5 bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded text-xs font-semibold uppercase tracking-[0.08em]">
                 Paused
               </div>
             )}
             {queue.status === "CLOSED" && (
-              <div className="flex items-center gap-1.5 bg-red-500/20 text-red-400 px-2.5 py-1 rounded text-xs font-black uppercase tracking-widest">
+              <div className="flex items-center gap-1.5 bg-red-500/20 text-red-400 px-2.5 py-1 rounded text-xs font-semibold uppercase tracking-[0.08em]">
                 Closed
               </div>
             )}
@@ -231,7 +235,7 @@ export default function CustomerQueuePage() {
               return (
                 <div className="space-y-6 animate-sl-fade-in">
                   <div className="text-center mb-6">
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Join the queue</h2>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Join the queue</h2>
                   <p className="text-sm font-semibold text-sl-blue dark:text-blue-400 mt-2">
                     Join now and move freely while you wait. We'll let you know when it's your turn.
                   </p>
@@ -245,7 +249,7 @@ export default function CustomerQueuePage() {
                   )}
                   
                   <div className="space-y-1.5">
-                    <Label htmlFor="name" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Name</Label>
+                    <Label htmlFor="name" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1">Name</Label>
                     <Input 
                       id="name" 
                       placeholder="Your name" 
@@ -257,7 +261,7 @@ export default function CustomerQueuePage() {
                   </div>
                   
                   <div className="space-y-1.5">
-                    <Label htmlFor="phone" className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1 flex justify-between">
+                    <Label htmlFor="phone" className="text-xs font-semibold text-slate-500 uppercase tracking-[0.08em] ml-1 flex justify-between">
                       <span>Phone</span>
                       <span className="text-slate-400">Optional</span>
                     </Label>
@@ -273,7 +277,7 @@ export default function CustomerQueuePage() {
                   
                   <Button 
                     type="submit" 
-                    className={`w-full h-14 text-lg font-black rounded-xl mt-4 shadow-md transition-all ${queue.status === 'PAUSED' ? 'bg-slate-200 text-slate-500' : 'bg-sl-blue hover:bg-blue-700 text-white'}`}
+                    className={`w-full h-14 text-lg font-bold rounded-xl mt-4 shadow-md transition-all ${queue.status === 'PAUSED' ? 'bg-slate-200 text-slate-500' : 'bg-sl-blue hover:bg-blue-700 text-white'}`}
                     disabled={isJoining || queue.status === 'PAUSED'}
                   >
                     {isJoining ? "Joining..." : queue.status === 'PAUSED' ? "Queue Paused" : "Join Queue"}
@@ -297,10 +301,10 @@ export default function CustomerQueuePage() {
                     </p>
                   </div>
                   <div className="text-center w-full py-6 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 mt-4">
-                    <p className="text-xs font-black text-slate-400 mb-3 uppercase tracking-widest">
+                    <p className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-[0.08em]">
                       Your Token
                     </p>
-                    <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
+                    <span className="text-5xl font-extrabold tabular-nums text-slate-900 dark:text-white tracking-tighter">
                       A-{String(status.entry.sequenceNumber).padStart(3, '0')}
                     </span>
                   </div>
@@ -318,62 +322,68 @@ export default function CustomerQueuePage() {
               <div className="space-y-6 flex flex-col items-center w-full">
 
               {/* CALLED STATE */}
-              {status.entry.status === 'CALLED' && (
-                <div className="w-full text-center animate-sl-fade-in" role="alert" aria-live="assertive">
-                  <div className="mb-8">
-                    <div className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-black uppercase tracking-widest mb-4 ${!entryData?.acknowledgedCalled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 animate-sl-pulse-soft' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
-                      It's Your Turn
-                    </div>
-                    <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">You're Up!</h2>
-                    <p className="text-base font-semibold text-slate-500 mt-2">
-                      Please proceed to the desk immediately.
-                    </p>
-                  </div>
+              {status.entry.status === 'CALLED' && (() => {
+                const currentCallCount = status.entry.callCount || 1;
+                const isCallAcknowledged = entryData?.acknowledgedCallCount === currentCallCount || 
+                  (entryData?.acknowledgedCalled && !status.entry.callCount);
 
-                  <div className="text-center w-full py-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border-2 border-emerald-500/20 shadow-inner mb-6">
-                    <p className="text-xs font-black text-emerald-600/70 dark:text-emerald-500/70 mb-3 uppercase tracking-widest">
-                      Your Token
-                    </p>
-                    <span className="text-6xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">
-                      A-{String(status.entry.sequenceNumber).padStart(3, '0')}
-                    </span>
-                  </div>
-                  
-                  {!entryData?.acknowledgedCalled && (
-                    <Button 
-                      className="w-full h-14 text-lg font-black rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 transition-all"
-                      onClick={handleAcknowledge}
-                    >
-                      I'm heading to the desk
-                    </Button>
-                  )}
-                  {entryData?.acknowledgedCalled && (
-                    <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2">
-                      <CheckCircle2 className="h-5 w-5" />
-                      We'll see you shortly
+                return (
+                  <div className="w-full text-center animate-sl-fade-in" role="alert" aria-live="assertive">
+                    <div className="mb-8">
+                      <div className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold uppercase tracking-[0.08em] mb-4 ${!isCallAcknowledged ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 animate-sl-pulse-soft' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
+                        It's Your Turn
+                      </div>
+                      <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tighter">You're Up!</h2>
+                      <p className="text-base font-semibold text-slate-500 mt-2">
+                        Please proceed to the desk immediately.
+                      </p>
                     </div>
-                  )}
-                </div>
-              )}
+
+                    <div className="text-center w-full py-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border-2 border-emerald-500/20 shadow-inner mb-6">
+                      <p className="text-xs font-semibold text-emerald-600/70 dark:text-emerald-500/70 mb-3 uppercase tracking-[0.08em]">
+                        Your Token
+                      </p>
+                      <span className="text-6xl font-extrabold tabular-nums text-emerald-600 dark:text-emerald-400 tracking-tighter">
+                        A-{String(status.entry.sequenceNumber).padStart(3, '0')}
+                      </span>
+                    </div>
+                    
+                    {!isCallAcknowledged && (
+                      <Button 
+                        className="w-full h-14 text-lg font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 transition-all"
+                        onClick={handleAcknowledge}
+                      >
+                        I'm heading to the desk
+                      </Button>
+                    )}
+                    {isCallAcknowledged && (
+                      <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2">
+                        <CheckCircle2 className="h-5 w-5" />
+                        We'll see you shortly
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* SERVING STATE */}
               {status.entry.status === 'SERVING' && (
                 <div className="w-full text-center animate-sl-fade-in">
                   <div className="mb-8">
-                    <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 text-sm font-black uppercase tracking-widest mb-4">
+                    <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 text-sm font-semibold uppercase tracking-[0.08em] mb-4">
                       In Progress
                     </div>
-                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Being Served</h2>
+                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Being Served</h2>
                     <p className="text-base font-semibold text-slate-500 mt-2">
                       You are currently at the desk.
                     </p>
                   </div>
 
                   <div className="text-center w-full py-6 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
-                    <p className="text-xs font-black text-slate-400 mb-3 uppercase tracking-widest">
+                    <p className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-[0.08em]">
                       Your Token
                     </p>
-                    <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
+                    <span className="text-5xl font-extrabold tabular-nums text-slate-900 dark:text-white tracking-tighter">
                       A-{String(status.entry.sequenceNumber).padStart(3, '0')}
                     </span>
                   </div>
@@ -385,11 +395,11 @@ export default function CustomerQueuePage() {
                 <div className="w-full text-center animate-sl-fade-in">
                   
                   <div className="text-center w-full py-8">
-                    <p className="text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">
+                    <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-[0.08em]">
                       Your Token
                     </p>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-6xl sm:text-7xl font-black text-slate-900 dark:text-white tracking-tighter">
+                      <span className="text-6xl sm:text-7xl font-extrabold tabular-nums text-slate-900 dark:text-white tracking-tighter">
                         A-{String(status.entry.sequenceNumber).padStart(3, '0')}
                       </span>
                     </div>
@@ -407,18 +417,18 @@ export default function CustomerQueuePage() {
                     <div className="w-full grid grid-cols-2 gap-3 mt-2">
                       {status.position > 0 && (
                         <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl text-center border border-slate-100 dark:border-slate-800">
-                          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                          <p className="text-3xl font-extrabold tabular-nums text-slate-900 dark:text-white tracking-tight">
                             {status.position}
                           </p>
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Position</p>
+                          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.08em] mt-1">Position</p>
                         </div>
                       )}
                       {status.estimatedWaitTimeMinutes > 0 && (
                         <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl text-center border border-slate-100 dark:border-slate-800">
-                          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                          <p className="text-3xl font-extrabold tabular-nums text-slate-900 dark:text-white tracking-tight">
                             ~{status.estimatedWaitTimeMinutes}m
                           </p>
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Wait</p>
+                          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.08em] mt-1">Wait</p>
                         </div>
                       )}
                     </div>
@@ -435,7 +445,7 @@ export default function CustomerQueuePage() {
                         <CheckCircle2 className="w-10 h-10" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">You're all set</h3>
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">You're all set</h3>
                         <p className="text-sm font-semibold text-slate-500 mt-2">Your service is complete. Thank you!</p>
                       </div>
                     </>
@@ -446,7 +456,7 @@ export default function CustomerQueuePage() {
                         <UserCircle2 className="w-10 h-10" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">You left</h3>
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">You left</h3>
                         <p className="text-sm font-semibold text-slate-500 mt-2">Your place in line has been cancelled.</p>
                       </div>
                     </>
@@ -457,7 +467,7 @@ export default function CustomerQueuePage() {
                         <XCircle className="w-10 h-10" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">You were skipped</h3>
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">You were skipped</h3>
                         <p className="text-sm font-semibold text-slate-500 mt-2">You missed your turn and have been skipped.</p>
                       </div>
                     </>

@@ -21,6 +21,7 @@ model User {
 
   events        Event[]
   refreshTokens RefreshToken[]
+  authTokens    AuthToken[]
 
   @@index([status])
 }
@@ -35,6 +36,25 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model AuthToken {
+  id        String        @id @default(uuid())
+  userId    String
+  type      AuthTokenType
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
 }
 
 enum UserStatus {
@@ -127,6 +147,7 @@ model QueueEntry {
   requeueAfterCallCount    Int?
 
   noShowCount  Int       @default(0)
+  callCount    Int       @default(0)
   lastNoShowAt DateTime?
 
   joinedAt    DateTime  @default(now())

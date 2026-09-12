@@ -1,8 +1,18 @@
 import AppError from "../../shared/errors/AppError.js";
 import { eventRepository } from "./event.repository.js";
+import { authRepository } from "../auth/auth.repository.js";
 import { broadcastToQueue } from "../../infrastructure/websocket/websocket.server.js";
 
 export const createEvent = async (organizerId, { name, description, venue, venueMapUrl, startAt, endAt, status }) => {
+  const organizer = await authRepository.findUserById(organizerId);
+  if (!organizer) {
+    throw new AppError("Organizer not found", 404, "ORGANIZER_NOT_FOUND");
+  }
+
+  if (!organizer.emailVerifiedAt) {
+    throw new AppError("Email verification required to create events", 403, "EMAIL_NOT_VERIFIED");
+  }
+
   if (!name || !startAt || !endAt) {
     throw new AppError("Name, startAt, and endAt are required to create an event", 400, "MISSING_REQUIRED_FIELDS");
   }
@@ -82,6 +92,15 @@ export const updateEvent = async (id, organizerId, data) => {
 
   if (newStartAt >= newEndAt) {
     throw new AppError("startAt date must be before endAt date", 400, "INVALID_DATE_RANGE");
+  }
+
+  // Prevent event from transitioning to LIVE before its scheduled startAt time
+  if (updatePayload.status === "LIVE" && event.status !== "LIVE") {
+    const nowMs = Date.now();
+    const effectiveStartAtMs = new Date(newStartAt).getTime();
+    if (nowMs < effectiveStartAtMs) {
+      throw new AppError("Event cannot start before its scheduled start time.", 400, "EVENT_CANNOT_START_EARLY");
+    }
   }
 
   let result;

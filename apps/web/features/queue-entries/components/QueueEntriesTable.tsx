@@ -107,7 +107,7 @@ export function QueueEntriesTable({ queueId, entries, isLoading, error, isHistor
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === tab.key 
                 ? tab.activeColor + " shadow-sm" 
                 : "hover:bg-slate-100 dark:hover:bg-slate-800 " + tab.color
@@ -169,8 +169,8 @@ function StatCard({ label, value, icon, className }: { label: string; value: num
     <div className={`flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 ${className}`}>
       <div className="shrink-0 opacity-60">{icon}</div>
       <div>
-        <div className="text-xl font-black tracking-tight">{value}</div>
-        <div className="text-[10px] font-bold uppercase tracking-widest opacity-70">{label}</div>
+        <div className="text-xl font-bold tabular-nums tracking-tight">{value}</div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">{label}</div>
       </div>
     </div>
   );
@@ -190,7 +190,7 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${styles[status] || styles.WAITING}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-[0.08em] ${styles[status] || styles.WAITING}`}>
       {(status === "CALLED" || status === "SERVING") && (
         <span className="relative flex h-1.5 w-1.5">
           <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === "CALLED" ? "bg-emerald-500" : "bg-blue-500"}`}></span>
@@ -247,20 +247,20 @@ function EntryCard({ entry, queueId, startServing, completeService, handleNoShow
       }`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-black text-base border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-center w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-bold tabular-nums text-base border border-slate-200 dark:border-slate-800">
               {entry.sequenceNumber}
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h5 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">
+                <h5 className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-1">
                   {entry.customerName || "Guest"}
                 </h5>
                 {entry.priority === "VIP" && (
-                  <span className="shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400">VIP</span>
+                  <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400">VIP</span>
                 )}
               </div>
               <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
-                <span className="flex items-center gap-1 font-semibold">
+                <span className="flex items-center gap-1 font-medium tabular-nums">
                   <Clock className="h-3 w-3" /> {getWaitTime(entry)}
                 </span>
                 {entry.customerPhone && (
@@ -279,7 +279,7 @@ function EntryCard({ entry, queueId, startServing, completeService, handleNoShow
           <div className="flex items-stretch gap-2 mt-2">
             <Button 
               size="sm" 
-              className="flex-1 h-9 font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="flex-1 h-9 font-semibold tracking-[-0.01em] text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
               disabled={isStarting}
               onClick={() => startServing({ entryId: entry.id, queueId })}
             >
@@ -288,7 +288,7 @@ function EntryCard({ entry, queueId, startServing, completeService, handleNoShow
             <Button 
               size="sm" 
               variant="outline"
-              className="h-9 font-bold text-xs text-slate-500 hover:text-red-600 hover:bg-red-50"
+              className="h-9 font-semibold tracking-[-0.01em] text-xs text-slate-500 hover:text-red-600 hover:bg-red-50"
               disabled={isSkipping}
               onClick={() => setShowNoShowConfirm(true)}
             >
@@ -299,7 +299,7 @@ function EntryCard({ entry, queueId, startServing, completeService, handleNoShow
         {!isHistorical && entry.status === "SERVING" && (
           <Button 
             size="sm" 
-            className="w-full h-9 font-bold text-xs bg-sl-blue hover:bg-blue-700 text-white mt-2"
+            className="w-full h-9 font-semibold tracking-[-0.01em] text-xs bg-sl-blue hover:bg-blue-700 text-white mt-2"
             disabled={isCompleting}
             onClick={() => completeService({ entryId: entry.id, queueId })}
           >

@@ -10,6 +10,7 @@
  */
 export type * from './models/User.ts'
 export type * from './models/RefreshToken.ts'
+export type * from './models/AuthToken.ts'
 export type * from './models/Event.ts'
 export type * from './models/Queue.ts'
 export type * from './models/QueueEntry.ts'

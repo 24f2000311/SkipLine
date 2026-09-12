@@ -23,6 +23,7 @@ export const useWebSocket = (queueId?: string, enabled: boolean = true) => {
 
   // Authentication states
   const organizerToken = useAuthStore((state) => state.accessToken);
+  const userId = useAuthStore((state) => state.user?.id);
   const customerEntry = useCustomerStore((state) => queueId ? state.entries[queueId] : null);
 
   useEffect(() => {
@@ -124,7 +125,8 @@ export const useWebSocket = (queueId?: string, enabled: boolean = true) => {
         ws = null;
       }
     };
-  }, [queueId, enabled, organizerToken, customerEntry?.token, customerEntry?.entryId, queryClient]);
+  }, [queueId, enabled, organizerToken, userId, customerEntry?.token, customerEntry?.entryId, queryClient]);
 
   return { connectionState };
 };
+

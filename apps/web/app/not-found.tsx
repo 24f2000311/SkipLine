@@ -12,7 +12,7 @@ export default function NotFound() {
           <SearchX className="w-8 h-8" />
         </div>
         
-        <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
           Page not found
         </h2>
         

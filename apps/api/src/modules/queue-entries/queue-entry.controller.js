@@ -18,6 +18,7 @@ const serializeQueueEntry = (entry) => {
     token: entry.token,
     requeueAfterCallCount: entry.requeueAfterCallCount,
     noShowCount: entry.noShowCount,
+    callCount: entry.callCount !== undefined && entry.callCount !== null ? Number(entry.callCount) : 0,
     lastNoShowAt: entry.lastNoShowAt,
     joinedAt: entry.joinedAt,
     calledAt: entry.calledAt,

@@ -63,4 +63,40 @@ test.describe('Authentication Flows', () => {
     // URL shouldn't change
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test('unverified organizer sees setup banner and clicking Create Event opens verification dialog', async ({ page }) => {
+    const unverifiedEmail = `unverified${Date.now()}@example.com`;
+    await page.goto('/register');
+    await page.fill('input[name="name"]', 'Unverified Organizer');
+    await page.fill('input[name="email"]', unverifiedEmail);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.click('button[type="submit"]');
+
+    await expect(page).toHaveURL(/\/organizer\/dashboard/);
+
+    // Should display the branded setup banner
+    await expect(page.getByText('Verify your email', { exact: true })).toBeVisible();
+    await expect(page.getByText('Your account is ready, but you need to verify your email')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Resend verification email' })).toBeVisible();
+
+    // Clicking "Create Event" should open the VerificationRequiredDialog
+    await page.getByRole('button', { name: 'Create Event' }).first().click();
+    await expect(page.getByRole('heading', { name: 'Verify your email' })).toBeVisible();
+    await expect(page.getByText(unverifiedEmail)).toBeVisible();
+    await expect(page.getByRole('button', { name: "I'll do this later" })).toBeVisible();
+
+    // Dismiss dialog
+    await page.getByRole('button', { name: "I'll do this later" }).click();
+
+    // Now simulate email verification
+    await page.request.post('http://localhost:8123/api/v1/auth/test-verify', {
+      data: { email: unverifiedEmail },
+    });
+    await page.reload();
+
+    // Banner should disappear and clicking Create Event navigates to /organizer/events/new
+    await expect(page.getByText('Your account is ready, but you need to verify your email')).not.toBeVisible();
+    await page.getByRole('button', { name: 'Create Event' }).first().click();
+    await expect(page).toHaveURL(/\/organizer\/events\/new/);
+  });
 });

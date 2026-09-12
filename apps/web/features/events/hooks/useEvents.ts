@@ -5,33 +5,36 @@ import { useAuthStore } from "@/stores/useAuthStore";
 export const useEvents = () => {
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
 
   return useQuery({
-    queryKey: ["events"],
+    queryKey: ["organizer-events", user?.id],
     queryFn: async () => {
       const response = await eventApi.getAll();
       return response.data;
     },
-    enabled: hasHydrated && !!accessToken,
+    enabled: hasHydrated && !!accessToken && !!user?.id,
   });
 };
 
 export const useEvent = (id: string) => {
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
 
   return useQuery({
-    queryKey: ["events", id],
+    queryKey: ["organizer-events", user?.id, id],
     queryFn: async () => {
       const response = await eventApi.getOne(id);
       return response.data;
     },
-    enabled: !!id && hasHydrated && !!accessToken,
+    enabled: !!id && hasHydrated && !!accessToken && !!user?.id,
   });
 };
 
 export const useCreateEvent = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
 
   return useMutation({
     mutationFn: async (data: any) => {
@@ -39,26 +42,28 @@ export const useCreateEvent = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["organizer-events", user?.id] });
     },
   });
 };
 
 export const useDeleteEvent = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
 
   return useMutation({
     mutationFn: async (id: string) => {
       return await eventApi.delete(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["organizer-events", user?.id] });
     },
   });
 };
 
 export const useUpdateEvent = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
@@ -66,8 +71,8 @@ export const useUpdateEvent = () => {
       return response.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["events", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["organizer-events", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["organizer-events", user?.id, variables.id] });
     },
   });
 };

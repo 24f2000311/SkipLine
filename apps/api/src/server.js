@@ -4,6 +4,7 @@ import logger from "./infrastructure/logger/logger.js";
 import connectDatabase from "./infrastructure/database/database.js";
 import { initWebSocketServer } from "./infrastructure/websocket/websocket.server.js";
 
+// Skipline API Server entry point
 const startServer = async () => {
   try {
     await connectDatabase();

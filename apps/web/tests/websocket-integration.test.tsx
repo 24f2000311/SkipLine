@@ -11,11 +11,13 @@ vi.mock('../hooks/useWebSocket', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(),
+  useRouter: vi.fn().mockReturnValue({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 vi.mock('../features/queues/hooks/useQueues', () => ({
   useQueue: vi.fn().mockReturnValue({ data: {}, isLoading: false }),
   useUpdateQueue: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
+  useDeleteQueue: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
   usePublicQueue: vi.fn().mockReturnValue({ data: { _count: { entries: 0 }, event: {} }, isLoading: false }),
 }));
 

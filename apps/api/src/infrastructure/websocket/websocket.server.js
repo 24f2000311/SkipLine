@@ -171,3 +171,42 @@ export const broadcastToQueue = (queueId, eventType, payload) => {
     }
   });
 };
+
+/**
+ * Cleans up all real-time resources associated with a deleted organizer account:
+ * 1. Broadcasts QUEUE_DELETED and clears subscriptions for all deleted queues.
+ * 2. Terminates any active WebSocket connections owned by the organizer.
+ * @param {string} organizerId
+ * @param {string[]} deletedQueueIds
+ */
+export const cleanupOrganizerWebSockets = (organizerId, deletedQueueIds = []) => {
+  if (!wss) return;
+
+  // 1. Notify and unsubscribe any clients listening to deleted queues
+  for (const queueId of deletedQueueIds) {
+    if (queueSubscriptions.has(queueId)) {
+      const subscribers = queueSubscriptions.get(queueId);
+      const closeMsg = JSON.stringify({
+        event: "QUEUE_DELETED",
+        queueId,
+        timestamp: new Date().toISOString(),
+        message: "This queue has been deleted and is no longer available.",
+      });
+
+      subscribers.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(closeMsg);
+        }
+        client.subscribedQueues?.delete(queueId);
+      });
+      queueSubscriptions.delete(queueId);
+    }
+  }
+
+  // 2. Terminate any active organizer connections
+  wss.clients.forEach((client) => {
+    if (client.organizerId === organizerId) {
+      client.close(4001, "Account deleted");
+    }
+  });
+};
