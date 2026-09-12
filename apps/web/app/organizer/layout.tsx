@@ -23,17 +23,21 @@ export default function OrganizerLayout({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const handleResendVerification = async () => {
     if (!user?.email || isResendingVerification) return;
     setIsResendingVerification(true);
+    setResendError(null);
     try {
       await authApi.resendVerification(user.email);
       setResendSuccess(true);
       setTimeout(() => setResendSuccess(false), 5000);
-    } catch (e) {
-      // safe ignore
+    } catch (e: any) {
+      const msg = e?.response?.data?.error?.message || e?.message || "Failed to send verification email. Please try again later.";
+      setResendError(msg);
+      setTimeout(() => setResendError(null), 6000);
     } finally {
       setIsResendingVerification(false);
     }
@@ -261,16 +265,28 @@ export default function OrganizerLayout({
 
       {/* Unverified Email Setup Card / Banner */}
       {user && !user.emailVerifiedAt && (
-        <div className="bg-blue-50/70 dark:bg-blue-950/30 border-b border-[#1868F8]/20 px-4 py-3 text-xs sm:text-sm font-medium animate-sl-fade-in">
+        <div className={`border-b px-4 py-3 text-xs sm:text-sm font-medium animate-sl-fade-in ${
+          resendError 
+            ? "bg-red-50/90 dark:bg-red-950/40 border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300"
+            : "bg-blue-50/70 dark:bg-blue-950/30 border-[#1868F8]/20 text-slate-700 dark:text-slate-200"
+        }`}>
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-start sm:items-center gap-2.5 text-slate-700 dark:text-slate-200">
-              <span className="text-[#1868F8] font-bold text-sm select-none">✦</span>
+            <div className="flex items-start sm:items-center gap-2.5">
+              <span className={`font-bold text-sm select-none ${resendError ? "text-red-500" : "text-[#1868F8]"}`}>
+                {resendError ? "⚠" : "✦"}
+              </span>
               <div>
                 <span className="font-bold text-slate-900 dark:text-white mr-1.5">
                   Verify your email
                 </span>
-                <span className="text-slate-600 dark:text-slate-300">
-                  — Your account is ready, but you need to verify your email before creating events or queues.
+                <span>
+                  {resendError ? (
+                    <strong className="text-red-600 dark:text-red-400 font-semibold">{resendError}</strong>
+                  ) : (
+                    <span className="text-slate-600 dark:text-slate-300">
+                      — Your account is ready, but you need to verify your email before creating events or queues.
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
@@ -278,7 +294,11 @@ export default function OrganizerLayout({
               size="sm"
               onClick={handleResendVerification}
               disabled={isResendingVerification}
-              className="h-8 px-3.5 text-xs font-bold shrink-0 bg-[#1868F8] hover:bg-blue-700 text-white rounded-lg shadow-xs transition-micro"
+              className={`h-8 px-3.5 text-xs font-bold shrink-0 rounded-lg shadow-xs transition-micro text-white ${
+                resendError
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-[#1868F8] hover:bg-blue-700"
+              }`}
             >
               {isResendingVerification
                 ? "Sending..."

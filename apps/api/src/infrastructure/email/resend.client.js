@@ -31,11 +31,17 @@ const maskEmail = (email) => {
 class ResendClient {
   constructor() {
     this._client = null;
+    this._currentKey = null;
   }
 
   getClient() {
-    if (!this._client && emailConfig.apiKey && emailConfig.apiKey !== "mock") {
-      this._client = new Resend(emailConfig.apiKey);
+    const key = emailConfig.apiKey;
+    if (!key || key === "mock") {
+      return null;
+    }
+    if (!this._client || this._currentKey !== key) {
+      this._client = new Resend(key);
+      this._currentKey = key;
     }
     return this._client;
   }
@@ -48,7 +54,7 @@ class ResendClient {
    * @param {string} params.html - HTML content
    * @param {string} [params.text] - Plain-text fallback
    * @param {string} params.idempotencyKey - Deterministic event idempotency key
-   * @returns {Promise<{ id: string, success: boolean }>}
+   * @returns {Promise<{ id: string, success: boolean, error?: string }>}
    */
   async sendEmail({ to, subject, html, text, idempotencyKey }) {
     if (!to) {
@@ -65,7 +71,8 @@ class ResendClient {
 
     // In test environment or when no valid API key is present: simulate send
     const isTest = process.env.NODE_ENV === "test";
-    const isSimulated = !emailConfig.apiKey || emailConfig.apiKey === "mock" || isTest;
+    const apiKey = emailConfig.apiKey;
+    const isSimulated = !apiKey || apiKey === "mock" || isTest;
 
     if (isSimulated) {
       const simulatedId = `sim_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -80,15 +87,26 @@ class ResendClient {
       };
       sentEmailsHistory.push(record);
 
-      logger.info(
-        {
-          to: maskEmail(to),
-          subject,
-          idempotencyKey,
-          simulated: true,
-        },
-        "Transactional email send simulated (test/no-key mode)"
-      );
+      if (process.env.NODE_ENV === "production" && !apiKey) {
+        logger.error(
+          {
+            to: maskEmail(to),
+            subject,
+            idempotencyKey,
+          },
+          "CRITICAL: RESEND_API_KEY is not configured in production! Email could not be delivered to recipient."
+        );
+      } else {
+        logger.info(
+          {
+            to: maskEmail(to),
+            subject,
+            idempotencyKey,
+            simulated: true,
+          },
+          "Transactional email send simulated (test/no-key mode)"
+        );
+      }
 
       return { id: simulatedId, success: true };
     }
@@ -96,7 +114,7 @@ class ResendClient {
     try {
       const client = this.getClient();
       if (!client) {
-        throw new Error("Resend client not initialized");
+        throw new Error("Resend client not initialized (missing API key)");
       }
 
       const response = await client.emails.send(payload, {
@@ -110,10 +128,12 @@ class ResendClient {
         logger.error(
           {
             to: maskEmail(to),
+            from: emailConfig.from,
             subject,
             idempotencyKey,
             errorName: response.error.name,
             errorMessage: response.error.message,
+            statusCode: response.error.statusCode,
           },
           "Resend API reported send failure"
         );
@@ -123,6 +143,7 @@ class ResendClient {
       logger.info(
         {
           to: maskEmail(to),
+          from: emailConfig.from,
           subject,
           emailId: response.data?.id,
           idempotencyKey,
@@ -136,6 +157,7 @@ class ResendClient {
       logger.error(
         {
           to: maskEmail(to),
+          from: emailConfig.from,
           subject,
           idempotencyKey,
           error: err.message,
