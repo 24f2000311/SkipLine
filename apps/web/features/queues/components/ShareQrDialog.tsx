@@ -20,10 +20,14 @@ import {
   Printer,
   Share2,
   MapPin,
-  Clock,
   Calendar,
   Sparkles,
   MessageSquare,
+  Sun,
+  Moon,
+  Smartphone,
+  UserCheck,
+  BellRing,
 } from "lucide-react";
 import Link from "next/link";
 import { getCustomerQueueUrl, getGoogleMapsUrl } from "@/lib/url";
@@ -42,6 +46,16 @@ interface ShareQrDialogProps {
   } | null;
 }
 
+function escapeHtml(str: string | null | undefined): string {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function ShareQrDialog({
   queueId,
   queueName,
@@ -50,6 +64,8 @@ export function ShareQrDialog({
 }: ShareQrDialogProps) {
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [posterTheme, setPosterTheme] = useState<"clean" | "dark">("clean");
   const posterRef = useRef<HTMLDivElement>(null);
 
   // Single centralized canonical customer URL builder
@@ -157,225 +173,443 @@ export function ShareQrDialog({
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Could not create canvas context");
 
-      // Deep Navy / Dark Blue Background
-      const bgGrad = ctx.createLinearGradient(0, 0, 1200, 1650);
-      bgGrad.addColorStop(0, "#060913");
-      bgGrad.addColorStop(0.3, "#0a1128");
-      bgGrad.addColorStop(0.7, "#0d1838");
-      bgGrad.addColorStop(1, "#070b16");
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, 1200, 1650);
+      if (posterTheme === "clean") {
+        // --- CLEAN INK-FRIENDLY CANVAS (White / Slate) ---
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 1200, 1650);
 
-      // Subtle ambient brand glow
-      const glowGrad = ctx.createRadialGradient(960, 280, 40, 960, 280, 500);
-      glowGrad.addColorStop(0, "rgba(24, 104, 248, 0.28)");
-      glowGrad.addColorStop(1, "transparent");
-      ctx.fillStyle = glowGrad;
-      ctx.fillRect(0, 0, 1200, 1650);
+        // Frame
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(50, 50, 1100, 1550);
 
-      // Outer Frame
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(50, 50, 1100, 1550);
+        // Subtle inner border
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(62, 62, 1076, 1526);
 
-      // 1. BRAND HEADER
-      if (logoImg.width > 0) {
-        ctx.drawImage(logoImg, 80, 80, 60, 60);
-      }
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 42px system-ui, sans-serif";
-      ctx.fillText("Skipline", 155, 125);
+        // 1. BRAND HEADER
+        if (logoImg.width > 0) {
+          ctx.drawImage(logoImg, 80, 85, 54, 54);
+        }
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 42px system-ui, sans-serif";
+        ctx.fillText("Skipline", 148, 125);
 
-      ctx.fillStyle = "#1868F8";
-      ctx.beginPath();
-      ctx.arc(310, 122, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "700 14px system-ui, sans-serif";
-      ctx.fillText("OFFICIAL QUEUE SIGNAGE", 157, 150);
-
-      // Right pill on header
-      ctx.fillStyle = "rgba(24, 104, 248, 0.15)";
-      ctx.beginPath();
-      ctx.roundRect(860, 85, 260, 40, 20);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(24, 104, 248, 0.4)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      ctx.fillStyle = "#60a5fa";
-      ctx.font = "bold 15px system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("SMART VIRTUAL QUEUE", 990, 110);
-      ctx.textAlign = "left";
-
-      // 2. EVENT INFORMATION CARD
-      let y = 200;
-      if (event?.name) {
-        const cardX = 80;
-        const cardW = 1040;
-        const cardH = 220;
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+        ctx.fillStyle = "#1868F8";
         ctx.beginPath();
-        ctx.roundRect(cardX, y, cardW, cardH, 20);
+        ctx.arc(302, 122, 6, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-        ctx.lineWidth = 2;
+
+        ctx.fillStyle = "#64748b";
+        ctx.font = "700 13px system-ui, sans-serif";
+        ctx.fillText("OFFICIAL QUEUE SIGNAGE", 150, 150);
+
+        // Right pill on header
+        ctx.fillStyle = "#eff6ff";
+        ctx.beginPath();
+        ctx.roundRect(860, 85, 260, 42, 21);
+        ctx.fill();
+        ctx.strokeStyle = "#bfdbfe";
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        ctx.fillStyle = "#38bdf8";
+        ctx.fillStyle = "#1d4ed8";
         ctx.font = "bold 15px system-ui, sans-serif";
-        ctx.fillText("EVENT", cardX + 30, y + 40);
+        ctx.textAlign = "center";
+        ctx.fillText("SMART VIRTUAL QUEUE", 990, 112);
+        ctx.textAlign = "left";
+
+        // 2. EVENT INFORMATION CARD
+        let y = 200;
+        if (event?.name) {
+          const cardX = 80;
+          const cardW = 1040;
+          const cardH = 220;
+
+          ctx.fillStyle = "#f8fafc";
+          ctx.beginPath();
+          ctx.roundRect(cardX, y, cardW, cardH, 20);
+          ctx.fill();
+          ctx.strokeStyle = "#e2e8f0";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = "#2563eb";
+          ctx.font = "bold 15px system-ui, sans-serif";
+          ctx.fillText("EVENT", cardX + 30, y + 40);
+
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "bold 38px system-ui, sans-serif";
+          const truncatedEvent =
+            event.name.length > 40 ? event.name.slice(0, 40) + "..." : event.name;
+          ctx.fillText(truncatedEvent, cardX + 30, y + 85);
+
+          if (event.description) {
+            ctx.fillStyle = "#475569";
+            ctx.font = "500 18px system-ui, sans-serif";
+            const truncatedDesc =
+              event.description.length > 70
+                ? event.description.slice(0, 70) + "..."
+                : event.description;
+            ctx.fillText(truncatedDesc, cardX + 30, y + 120);
+          }
+
+          // Details bottom row in event card
+          ctx.fillStyle = "#64748b";
+          ctx.font = "600 18px system-ui, sans-serif";
+          let detailX = cardX + 30;
+          if (event.venue) {
+            const truncatedVenue =
+              event.venue.length > 32
+                ? event.venue.slice(0, 32) + "..."
+                : event.venue;
+            ctx.fillText(`📍 ${truncatedVenue}`, detailX, y + 180);
+            detailX += 450;
+          }
+
+          if (dateTime) {
+            ctx.fillText(`📅 ${dateTime.date} • ${dateTime.time}`, detailX, y + 180);
+          }
+
+          y += cardH + 35;
+        } else {
+          y += 35;
+        }
+
+        // 3. QUEUE SECTION HEADER
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#2563eb";
+        ctx.font = "800 18px system-ui, sans-serif";
+        ctx.fillText("SCAN TO JOIN THE QUEUE", 600, y);
+
+        y += 50;
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "900 52px system-ui, sans-serif";
+        const displayQueueName = queueName ? `"${queueName}"` : "Queue";
+        ctx.fillText(displayQueueName, 600, y);
+
+        if (queueDescription) {
+          y += 35;
+          ctx.fillStyle = "#64748b";
+          ctx.font = "500 20px system-ui, sans-serif";
+          const truncatedQDesc =
+            queueDescription.length > 60
+              ? queueDescription.slice(0, 60) + "..."
+              : queueDescription;
+          ctx.fillText(truncatedQDesc, 600, y);
+        }
+
+        // 4. QR CODE BOX
+        const qrBoxSize = 510;
+        const qrBoxX = (1200 - qrBoxSize) / 2;
+        const qrBoxY = y + 40;
 
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 38px system-ui, sans-serif";
-        const truncatedEvent =
-          event.name.length > 40 ? event.name.slice(0, 40) + "..." : event.name;
-        ctx.fillText(truncatedEvent, cardX + 30, y + 85);
+        ctx.beginPath();
+        ctx.roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 28);
+        ctx.fill();
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
 
-        if (event.description) {
-          ctx.fillStyle = "#cbd5e1";
-          ctx.font = "500 18px system-ui, sans-serif";
-          const truncatedDesc =
-            event.description.length > 70
-              ? event.description.slice(0, 70) + "..."
-              : event.description;
-          ctx.fillText(truncatedDesc, cardX + 30, y + 120);
+        // Draw QR Image onto canvas
+        const qrPadding = 35;
+        ctx.drawImage(
+          qrImg,
+          qrBoxX + qrPadding,
+          qrBoxY + qrPadding,
+          qrBoxSize - qrPadding * 2,
+          qrBoxSize - qrPadding * 2
+        );
+
+        // Center Logo
+        if (logoImg.width > 0) {
+          const centerSize = 92;
+          const centerX = qrBoxX + (qrBoxSize - centerSize) / 2;
+          const centerY = qrBoxY + (qrBoxSize - centerSize) / 2;
+
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.roundRect(centerX, centerY, centerSize, centerSize, 18);
+          ctx.fill();
+          ctx.strokeStyle = "#cbd5e1";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          const iconSize = 64;
+          ctx.drawImage(
+            logoImg,
+            centerX + (centerSize - iconSize) / 2,
+            centerY + (centerSize - iconSize) / 2,
+            iconSize,
+            iconSize
+          );
         }
 
-        // Details bottom row in event card
+        // 5. INSTRUCTIONS BELOW QR
+        const instructY = qrBoxY + qrBoxSize + 60;
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 28px system-ui, sans-serif";
+        ctx.fillText("Point your phone camera to join instantly", 600, instructY);
+
+        ctx.fillStyle = "#64748b";
+        ctx.font = "500 20px system-ui, sans-serif";
+        ctx.fillText(
+          "No app download required • Real-time wait estimates • Turn alerts",
+          600,
+          instructY + 36
+        );
+
+        // 6. CANONICAL URL PILL
+        const urlBoxW = 760;
+        const urlBoxH = 50;
+        const urlBoxX = (1200 - urlBoxW) / 2;
+        const urlBoxY = instructY + 70;
+
+        ctx.fillStyle = "#f1f5f9";
+        ctx.beginPath();
+        ctx.roundRect(urlBoxX, urlBoxY, urlBoxW, urlBoxH, 12);
+        ctx.fill();
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = "#0369a1";
+        ctx.font = "bold 21px monospace";
+        ctx.fillText(customerUrl, 600, urlBoxY + 33);
+
+        // 7. FOOTER
         ctx.fillStyle = "#94a3b8";
-        ctx.font = "600 18px system-ui, sans-serif";
-        let detailX = cardX + 30;
-        if (event.venue) {
-          const truncatedVenue =
-            event.venue.length > 32
-              ? event.venue.slice(0, 32) + "..."
-              : event.venue;
-          ctx.fillText(`📍 ${truncatedVenue}`, detailX, y + 180);
-          detailX += 450;
-        }
+        ctx.font = "500 16px system-ui, sans-serif";
+        ctx.fillText(
+          "Powered by Skipline • Join the queue, not the crowd.",
+          600,
+          1560
+        );
 
-        if (dateTime) {
-          ctx.fillText(`📅 ${dateTime.date} • ${dateTime.time}`, detailX, y + 180);
-        }
-
-        y += cardH + 40;
+        ctx.textAlign = "left";
       } else {
-        y += 40;
-      }
+        // --- DARK GRADIENT CANVAS ---
+        const bgGrad = ctx.createLinearGradient(0, 0, 1200, 1650);
+        bgGrad.addColorStop(0, "#060913");
+        bgGrad.addColorStop(0.3, "#0a1128");
+        bgGrad.addColorStop(0.7, "#0d1838");
+        bgGrad.addColorStop(1, "#070b16");
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 1200, 1650);
 
-      // 3. QUEUE SECTION HEADER
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#38bdf8";
-      ctx.font = "800 18px system-ui, sans-serif";
-      ctx.fillText("SCAN TO JOIN THE QUEUE", 600, y);
+        // Subtle ambient brand glow
+        const glowGrad = ctx.createRadialGradient(960, 280, 40, 960, 280, 500);
+        glowGrad.addColorStop(0, "rgba(24, 104, 248, 0.28)");
+        glowGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = glowGrad;
+        ctx.fillRect(0, 0, 1200, 1650);
 
-      y += 50;
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 52px system-ui, sans-serif";
-      const displayQueueName = queueName ? `"${queueName}"` : "Queue";
-      ctx.fillText(displayQueueName, 600, y);
+        // Outer Frame
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(50, 50, 1100, 1550);
 
-      if (queueDescription) {
-        y += 35;
+        // 1. BRAND HEADER
+        if (logoImg.width > 0) {
+          ctx.drawImage(logoImg, 80, 80, 60, 60);
+        }
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 42px system-ui, sans-serif";
+        ctx.fillText("Skipline", 155, 125);
+
+        ctx.fillStyle = "#1868F8";
+        ctx.beginPath();
+        ctx.arc(310, 122, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "700 14px system-ui, sans-serif";
+        ctx.fillText("OFFICIAL QUEUE SIGNAGE", 157, 150);
+
+        // Right pill on header
+        ctx.fillStyle = "rgba(24, 104, 248, 0.15)";
+        ctx.beginPath();
+        ctx.roundRect(860, 85, 260, 40, 20);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(24, 104, 248, 0.4)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = "#60a5fa";
+        ctx.font = "bold 15px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("SMART VIRTUAL QUEUE", 990, 110);
+        ctx.textAlign = "left";
+
+        // 2. EVENT INFORMATION CARD
+        let y = 200;
+        if (event?.name) {
+          const cardX = 80;
+          const cardW = 1040;
+          const cardH = 220;
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+          ctx.beginPath();
+          ctx.roundRect(cardX, y, cardW, cardH, 20);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = "#38bdf8";
+          ctx.font = "bold 15px system-ui, sans-serif";
+          ctx.fillText("EVENT", cardX + 30, y + 40);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 38px system-ui, sans-serif";
+          const truncatedEvent =
+            event.name.length > 40 ? event.name.slice(0, 40) + "..." : event.name;
+          ctx.fillText(truncatedEvent, cardX + 30, y + 85);
+
+          if (event.description) {
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "500 18px system-ui, sans-serif";
+            const truncatedDesc =
+              event.description.length > 70
+                ? event.description.slice(0, 70) + "..."
+                : event.description;
+            ctx.fillText(truncatedDesc, cardX + 30, y + 120);
+          }
+
+          // Details bottom row in event card
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = "600 18px system-ui, sans-serif";
+          let detailX = cardX + 30;
+          if (event.venue) {
+            const truncatedVenue =
+              event.venue.length > 32
+                ? event.venue.slice(0, 32) + "..."
+                : event.venue;
+            ctx.fillText(`📍 ${truncatedVenue}`, detailX, y + 180);
+            detailX += 450;
+          }
+
+          if (dateTime) {
+            ctx.fillText(`📅 ${dateTime.date} • ${dateTime.time}`, detailX, y + 180);
+          }
+
+          y += cardH + 40;
+        } else {
+          y += 40;
+        }
+
+        // 3. QUEUE SECTION HEADER
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "800 18px system-ui, sans-serif";
+        ctx.fillText("SCAN TO JOIN THE QUEUE", 600, y);
+
+        y += 50;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 52px system-ui, sans-serif";
+        const displayQueueName = queueName ? `"${queueName}"` : "Queue";
+        ctx.fillText(displayQueueName, 600, y);
+
+        if (queueDescription) {
+          y += 35;
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = "500 20px system-ui, sans-serif";
+          const truncatedQDesc =
+            queueDescription.length > 60
+              ? queueDescription.slice(0, 60) + "..."
+              : queueDescription;
+          ctx.fillText(truncatedQDesc, 600, y);
+        }
+
+        // 4. WHITE QR CODE BOX
+        const qrBoxSize = 510;
+        const qrBoxX = (1200 - qrBoxSize) / 2;
+        const qrBoxY = y + 40;
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 28);
+        ctx.fill();
+
+        // Draw QR Image onto canvas
+        const qrPadding = 35;
+        ctx.drawImage(
+          qrImg,
+          qrBoxX + qrPadding,
+          qrBoxY + qrPadding,
+          qrBoxSize - qrPadding * 2,
+          qrBoxSize - qrPadding * 2
+        );
+
+        // Embedded Flow Logo in center of QR code
+        if (logoImg.width > 0) {
+          const centerSize = 92;
+          const centerX = qrBoxX + (qrBoxSize - centerSize) / 2;
+          const centerY = qrBoxY + (qrBoxSize - centerSize) / 2;
+
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.roundRect(centerX, centerY, centerSize, centerSize, 18);
+          ctx.fill();
+          ctx.strokeStyle = "#e2e8f0";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          const iconSize = 64;
+          ctx.drawImage(
+            logoImg,
+            centerX + (centerSize - iconSize) / 2,
+            centerY + (centerSize - iconSize) / 2,
+            iconSize,
+            iconSize
+          );
+        }
+
+        // 5. INSTRUCTIONS BELOW QR
+        const instructY = qrBoxY + qrBoxSize + 60;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 28px system-ui, sans-serif";
+        ctx.fillText("Point your phone camera to join instantly", 600, instructY);
+
         ctx.fillStyle = "#94a3b8";
         ctx.font = "500 20px system-ui, sans-serif";
-        const truncatedQDesc =
-          queueDescription.length > 60
-            ? queueDescription.slice(0, 60) + "..."
-            : queueDescription;
-        ctx.fillText(truncatedQDesc, 600, y);
-      }
+        ctx.fillText(
+          "No app download required • Real-time wait estimates • Turn alerts",
+          600,
+          instructY + 36
+        );
 
-      // 4. WHITE QR CODE BOX
-      const qrBoxSize = 510;
-      const qrBoxX = (1200 - qrBoxSize) / 2;
-      const qrBoxY = y + 40;
+        // 6. CANONICAL URL PILL
+        const urlBoxW = 760;
+        const urlBoxH = 50;
+        const urlBoxX = (1200 - urlBoxW) / 2;
+        const urlBoxY = instructY + 70;
 
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 28);
-      ctx.fill();
-
-      // Draw QR Image onto canvas
-      const qrPadding = 35;
-      ctx.drawImage(
-        qrImg,
-        qrBoxX + qrPadding,
-        qrBoxY + qrPadding,
-        qrBoxSize - qrPadding * 2,
-        qrBoxSize - qrPadding * 2
-      );
-
-      // Embedded Flow Logo in center of QR code
-      if (logoImg.width > 0) {
-        const centerSize = 92;
-        const centerX = qrBoxX + (qrBoxSize - centerSize) / 2;
-        const centerY = qrBoxY + (qrBoxSize - centerSize) / 2;
-
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
         ctx.beginPath();
-        ctx.roundRect(centerX, centerY, centerSize, centerSize, 18);
+        ctx.roundRect(urlBoxX, urlBoxY, urlBoxW, urlBoxH, 12);
         ctx.fill();
-        ctx.strokeStyle = "#e2e8f0";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        const iconSize = 64;
-        ctx.drawImage(
-          logoImg,
-          centerX + (centerSize - iconSize) / 2,
-          centerY + (centerSize - iconSize) / 2,
-          iconSize,
-          iconSize
+        ctx.fillStyle = "#67e8f9";
+        ctx.font = "bold 21px monospace";
+        ctx.fillText(customerUrl, 600, urlBoxY + 33);
+
+        // 7. FOOTER
+        ctx.fillStyle = "#64748b";
+        ctx.font = "500 16px system-ui, sans-serif";
+        ctx.fillText(
+          "Powered by Skipline • Join the queue, not the crowd.",
+          600,
+          1560
         );
+
+        ctx.textAlign = "left";
       }
-
-      // 5. INSTRUCTIONS BELOW QR
-      const instructY = qrBoxY + qrBoxSize + 60;
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 28px system-ui, sans-serif";
-      ctx.fillText("Point your phone camera to join instantly", 600, instructY);
-
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "500 20px system-ui, sans-serif";
-      ctx.fillText(
-        "No app download required • Real-time wait estimates • Turn alerts",
-        600,
-        instructY + 36
-      );
-
-      // 6. CANONICAL URL PILL
-      const urlBoxW = 760;
-      const urlBoxH = 50;
-      const urlBoxX = (1200 - urlBoxW) / 2;
-      const urlBoxY = instructY + 70;
-
-      ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
-      ctx.beginPath();
-      ctx.roundRect(urlBoxX, urlBoxY, urlBoxW, urlBoxH, 12);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      ctx.fillStyle = "#67e8f9";
-      ctx.font = "bold 21px monospace";
-      ctx.fillText(customerUrl, 600, urlBoxY + 33);
-
-      // 7. FOOTER
-      ctx.fillStyle = "#64748b";
-      ctx.font = "500 16px system-ui, sans-serif";
-      ctx.fillText(
-        "Powered by Skipline • Join the queue, not the crowd.",
-        600,
-        1560
-      );
-
-      ctx.textAlign = "left"; // reset alignment
 
       // Trigger download
       const pngUrl = canvas.toDataURL("image/png");
@@ -384,7 +618,7 @@ export function ShareQrDialog({
       const safeQueueName = (queueName || "queue")
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "-");
-      a.download = `skipline-${safeQueueName}-poster.png`;
+      a.download = `skipline-${safeQueueName}-${posterTheme}-poster.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -398,7 +632,481 @@ export function ShareQrDialog({
   };
 
   const handlePrint = () => {
-    window.print();
+    try {
+      setIsPrinting(true);
+
+      const qrContainer = document.getElementById(`qr-poster-svg-${queueId}`);
+      const svgEl = qrContainer?.querySelector("svg");
+      if (!svgEl) {
+        throw new Error("QR Code SVG element not found.");
+      }
+
+      // Clone SVG and set explicit dimensions for crisp printing
+      const svgClone = svgEl.cloneNode(true) as SVGSVGElement;
+      svgClone.setAttribute("width", "100%");
+      svgClone.setAttribute("height", "100%");
+      const svgString = new XMLSerializer().serializeToString(svgClone);
+
+      // Build standalone print HTML document
+      const isClean = posterTheme === "clean";
+      const escapedQueueName = escapeHtml(queueName || "Queue");
+      const escapedQueueDesc = escapeHtml(queueDescription || "");
+      const escapedEventName = escapeHtml(event?.name || "");
+      const escapedEventDesc = escapeHtml(event?.description || "");
+      const escapedVenue = escapeHtml(event?.venue || "");
+      const escapedDate = escapeHtml(dateTime?.date || "");
+      const escapedTime = escapeHtml(dateTime?.time || "");
+      const escapedUrl = escapeHtml(customerUrl);
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Skipline Signage - ${escapedQueueName}</title>
+  <style>
+    @page {
+      size: portrait;
+      margin: 8mm 10mm;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: ${isClean ? "#ffffff" : "#070b16"} !important;
+      color: ${isClean ? "#0f172a" : "#ffffff"} !important;
+    }
+    .page-wrapper {
+      width: 100%;
+      height: 100%;
+      max-height: 278mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      overflow: hidden;
+      padding: 16px 20px;
+      border: ${isClean ? "3px solid #0f172a" : "2px solid rgba(255,255,255,0.2)"};
+      border-radius: 18px;
+      background: ${
+        isClean
+          ? "#ffffff"
+          : "linear-gradient(180deg, #060913 0%, #0a1128 40%, #070b16 100%)"
+      } !important;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: ${isClean ? "2px solid #e2e8f0" : "1px solid rgba(255,255,255,0.12)"};
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+    .brand-text {
+      text-align: left;
+    }
+    .brand-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      color: ${isClean ? "#0f172a" : "#ffffff"};
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .brand-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #1868F8;
+      display: inline-block;
+    }
+    .brand-sub {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: ${isClean ? "#64748b" : "#94a3b8"};
+      margin-top: 2px;
+    }
+    .header-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: ${isClean ? "#eff6ff" : "rgba(24, 104, 248, 0.18)"} !important;
+      color: ${isClean ? "#1d4ed8" : "#60a5fa"} !important;
+      border: ${isClean ? "1px solid #bfdbfe" : "1px solid rgba(24, 104, 248, 0.4)"};
+    }
+    .event-card {
+      margin-top: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: ${isClean ? "#f8fafc" : "rgba(255,255,255,0.04)"} !important;
+      border: ${isClean ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.1)"};
+      text-align: left;
+    }
+    .event-tag {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: ${isClean ? "#2563eb" : "#38bdf8"};
+      margin-bottom: 2px;
+    }
+    .event-name {
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: ${isClean ? "#0f172a" : "#ffffff"};
+      margin: 0 0 4px 0;
+    }
+    .event-desc {
+      font-size: 11px;
+      line-height: 1.35;
+      color: ${isClean ? "#475569" : "#cbd5e1"};
+      margin: 0 0 6px 0;
+    }
+    .event-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: ${isClean ? "#64748b" : "#94a3b8"};
+      border-top: ${isClean ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)"};
+      padding-top: 6px;
+    }
+    .queue-section {
+      text-align: center;
+      margin: 10px 0 6px 0;
+    }
+    .queue-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 3px 12px;
+      border-radius: 9999px;
+      background: ${isClean ? "#dbeafe" : "rgba(24, 104, 248, 0.2)"} !important;
+      color: ${isClean ? "#1e40af" : "#38bdf8"} !important;
+      border: ${isClean ? "1px solid #bfdbfe" : "1px solid rgba(24, 104, 248, 0.35)"};
+      margin-bottom: 6px;
+    }
+    .queue-title {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      color: ${isClean ? "#0f172a" : "#ffffff"};
+      margin: 0;
+    }
+    .queue-desc {
+      font-size: 12px;
+      color: ${isClean ? "#64748b" : "#94a3b8"};
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+    .qr-area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .qr-card {
+      background: #ffffff !important;
+      border: ${isClean ? "3px solid #0f172a" : "4px solid rgba(255,255,255,0.2)"};
+      border-radius: 18px;
+      padding: 14px;
+      position: relative;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    }
+    .qr-svg-wrapper {
+      width: 215px;
+      height: 215px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-badge-logo {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffffff !important;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .qr-badge-logo img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+    .instructions {
+      text-align: center;
+      margin: 6px 0;
+    }
+    .instruct-headline {
+      font-size: 14px;
+      font-weight: 800;
+      color: ${isClean ? "#0f172a" : "#ffffff"};
+      margin: 0 0 2px 0;
+    }
+    .instruct-sub {
+      font-size: 11px;
+      color: ${isClean ? "#64748b" : "#94a3b8"};
+      margin: 0;
+    }
+    .steps-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 8px 0;
+    }
+    .step-box {
+      flex: 1;
+      max-width: 170px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: ${isClean ? "#f8fafc" : "rgba(255,255,255,0.04)"} !important;
+      border: ${isClean ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)"};
+      text-align: center;
+    }
+    .step-number {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+      font-size: 10px;
+      font-weight: 800;
+      border-radius: 50%;
+      background: #1868F8;
+      color: #ffffff;
+      margin-bottom: 3px;
+    }
+    .step-text {
+      font-size: 10px;
+      font-weight: 700;
+      color: ${isClean ? "#0f172a" : "#ffffff"};
+      line-height: 1.25;
+    }
+    .url-container {
+      text-align: center;
+      margin-top: 6px;
+    }
+    .url-pill {
+      display: inline-block;
+      max-width: 90%;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 8px;
+      word-break: break-all;
+      background: ${isClean ? "#f1f5f9" : "rgba(15, 23, 42, 0.7)"} !important;
+      color: ${isClean ? "#0284c7" : "#38bdf8"} !important;
+      border: ${isClean ? "1px solid #cbd5e1" : "1px solid rgba(255,255,255,0.12)"};
+    }
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+      margin-top: 6px;
+      font-size: 9.5px;
+      color: ${isClean ? "#94a3b8" : "#64748b"};
+      border-top: ${isClean ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.1)"};
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <!-- Brand Header -->
+    <div class="header">
+      <div class="brand">
+        <img src="/icon.png" alt="Skipline" class="brand-logo" />
+        <div class="brand-text">
+          <div class="brand-title">
+            Skipline <span class="brand-dot"></span>
+          </div>
+          <div class="brand-sub">Official Queue Signage</div>
+        </div>
+      </div>
+      <div class="header-pill">Smart Virtual Queue</div>
+    </div>
+
+    ${
+      event?.name
+        ? `<!-- Event Card -->
+    <div class="event-card">
+      <div class="event-tag">Official Event</div>
+      <h2 class="event-name">${escapedEventName}</h2>
+      ${escapedEventDesc ? `<p class="event-desc">${escapedEventDesc}</p>` : ""}
+      <div class="event-meta">
+        ${escapedVenue ? `<div>📍 <strong>${escapedVenue}</strong></div>` : ""}
+        ${
+          escapedDate
+            ? `<div>📅 ${escapedDate} ${escapedTime ? `• ${escapedTime}` : ""}</div>`
+            : ""
+        }
+      </div>
+    </div>`
+        : ""
+    }
+
+    <!-- Queue Headline -->
+    <div class="queue-section">
+      <div class="queue-badge">Scan to Join Queue</div>
+      <h1 class="queue-title">"${escapedQueueName}"</h1>
+      ${escapedQueueDesc ? `<div class="queue-desc">${escapedQueueDesc}</div>` : ""}
+    </div>
+
+    <!-- QR Code Section -->
+    <div class="qr-area">
+      <div class="qr-card">
+        <div class="qr-svg-wrapper">
+          ${svgString}
+        </div>
+        <div class="qr-badge-logo">
+          <img src="/icon.png" alt="" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions">
+      <p class="instruct-headline">Point your phone camera to join instantly</p>
+      <p class="instruct-sub">No app download required • Live wait estimates • Instant turn alerts</p>
+    </div>
+
+    <!-- 3 Steps -->
+    <div class="steps-row">
+      <div class="step-box">
+        <div class="step-number">1</div>
+        <div class="step-text">Open Phone Camera</div>
+      </div>
+      <div class="step-box">
+        <div class="step-number">2</div>
+        <div class="step-text">Tap Link to Enter Line</div>
+      </div>
+      <div class="step-box">
+        <div class="step-number">3</div>
+        <div class="step-text">Get Turn Notification</div>
+      </div>
+    </div>
+
+    <!-- Canonical URL -->
+    <div class="url-container">
+      <div class="url-pill">${escapedUrl}</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div>Powered by <strong>Skipline</strong></div>
+      <div>Join the queue, not the crowd.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      // Create isolated print iframe
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.style.visibility = "hidden";
+      iframe.setAttribute("aria-hidden", "true");
+      document.body.appendChild(iframe);
+
+      const iframeDoc =
+        iframe.contentWindow?.document || iframe.contentDocument;
+      if (!iframeDoc) {
+        throw new Error("Unable to access print iframe document.");
+      }
+
+      iframeDoc.open();
+      iframeDoc.write(html);
+      iframeDoc.close();
+
+      const triggerPrint = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (printErr) {
+          console.error("Print call failed:", printErr);
+          window.print(); // Fallback to window.print
+        } finally {
+          setIsPrinting(false);
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          }, 1500);
+        }
+      };
+
+      // Wait for images inside the iframe to load before opening print dialog
+      const imgs = iframeDoc.querySelectorAll("img");
+      if (imgs.length === 0) {
+        setTimeout(triggerPrint, 150);
+      } else {
+        let loadedCount = 0;
+        const checkReady = () => {
+          loadedCount++;
+          if (loadedCount >= imgs.length) {
+            setTimeout(triggerPrint, 150);
+          }
+        };
+
+        imgs.forEach((img) => {
+          if (img.complete) {
+            checkReady();
+          } else {
+            img.onload = checkReady;
+            img.onerror = checkReady;
+          }
+        });
+
+        // Safety fallback timeout
+        setTimeout(triggerPrint, 1000);
+      }
+    } catch (err) {
+      console.error("Print signage error:", err);
+      setIsPrinting(false);
+      window.print();
+    }
   };
 
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(
@@ -440,156 +1148,355 @@ export function ShareQrDialog({
 
           {/* Scrollable Content Area */}
           <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-            {/* BRANDED POSTER PREVIEW (Printable & Downloadable) */}
-            <div
-              ref={posterRef}
-              id={`poster-print-area-${queueId}`}
-              className="relative rounded-2xl p-4 sm:p-6 bg-gradient-to-b from-[#060913] via-[#0A1128] to-[#070B16] text-white shadow-2xl border border-white/10 flex flex-col items-center overflow-hidden print:shadow-none print:border-none print:p-8 print:w-full print:m-0"
-            >
-              {/* Subtle ambient lighting */}
-              <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
-
-              {/* 1. Brand Header */}
-              <div className="w-full flex items-center justify-between pb-3 mb-4 border-b border-white/10 relative z-10">
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/icon.png"
-                    alt="Skipline"
-                    className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow"
-                  />
-                  <div className="text-left">
-                    <div className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center">
-                      Skipline
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#1868F8] ml-1"></span>
-                    </div>
-                    <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.08em]">
-                      Official Queue Signage
-                    </div>
-                  </div>
-                </div>
-                <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold">
-                  <Sparkles className="h-3 w-3" />
-                  Smart Virtual Queue
-                </div>
+            {/* THEME & PRINT STYLE TOGGLE */}
+            <div className="flex items-center justify-between pb-0.5">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Signage Style & Preview
               </div>
-
-              {/* 2. Event Information Card */}
-              {event?.name && (
-                <div className="w-full bg-white/[0.04] border border-white/10 rounded-xl p-3.5 text-left mb-4 space-y-1.5 relative z-10 backdrop-blur-xs">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
-                    Official Event
-                  </div>
-                  <h4 className="text-base sm:text-lg font-extrabold text-white leading-snug break-words">
-                    {event.name}
-                  </h4>
-                  {event.description && (
-                    <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed font-medium">
-                      {event.description}
-                    </p>
-                  )}
-                  <div className="pt-2 border-t border-white/10 flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs text-slate-400">
-                    {event.venue && (
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                        <span className="font-semibold text-slate-200">
-                          {event.venue}
-                        </span>
-                        {mapsUrl && (
-                          <a
-                            href={mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 underline font-medium inline-flex items-center gap-0.5 ml-1 print:text-slate-800"
-                          >
-                            View on Google Maps{" "}
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                    )}
-                    {dateTime && (
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                        <span>
-                          {dateTime.date} • {dateTime.time}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* 3. Queue Headline */}
-              <div className="w-full text-center space-y-1 mb-4 relative z-10">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[11px] font-bold uppercase tracking-wider">
-                  Queue Entry Point
-                </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight break-words px-2">
-                  {queueName ? `"${queueName}"` : "Join the Queue"}
-                </h3>
-                {queueDescription && (
-                  <p className="text-xs text-slate-300 max-w-md mx-auto line-clamp-2 px-2 leading-relaxed">
-                    {queueDescription}
-                  </p>
-                )}
+              <div className="inline-flex p-0.5 bg-muted/80 dark:bg-muted/40 rounded-lg border border-input text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setPosterTheme("clean")}
+                  className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 text-xs ${
+                    posterTheme === "clean"
+                      ? "bg-background text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Sun className="h-3.5 w-3.5 text-amber-500" />
+                  Ink-Friendly Print
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPosterTheme("dark")}
+                  className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 text-xs ${
+                    posterTheme === "dark"
+                      ? "bg-background text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Moon className="h-3.5 w-3.5 text-blue-400" />
+                  Dark Brand Poster
+                </button>
               </div>
+            </div>
 
-              {/* 4. High-contrast QR Container with Centered Skipline Logo */}
+            {/* BRANDED POSTER PREVIEW */}
+            {posterTheme === "clean" ? (
+              /* --- CLEAN INK-FRIENDLY PREVIEW --- */
               <div
-                id={`qr-poster-svg-${queueId}`}
-                className="relative bg-white p-4 sm:p-5 rounded-2xl shadow-2xl border-4 border-white/20 mb-4 transition-transform hover:scale-[1.01] z-10"
+                ref={posterRef}
+                id={`poster-print-area-${queueId}`}
+                className="relative rounded-2xl p-4 sm:p-6 bg-white text-slate-900 shadow-xl border-2 border-slate-900 flex flex-col items-center overflow-hidden"
               >
-                <QRCode
-                  value={customerUrl}
-                  size={200}
-                  level="H"
-                  fgColor="#0f172a"
-                  bgColor="#ffffff"
-                  className="w-44 h-44 sm:w-48 sm:h-48"
-                />
-                {/* Centered Flow Logo Overlay (Safe 4.5% occlusion with Level H QR) */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-11 h-11 bg-white rounded-xl shadow-md border-2 border-slate-100 flex items-center justify-center p-1.5">
+                {/* 1. Brand Header */}
+                <div className="w-full flex items-center justify-between pb-3 mb-4 border-b border-slate-200">
+                  <div className="flex items-center gap-3">
                     <img
                       src="/icon.png"
                       alt="Skipline"
-                      className="w-full h-full object-contain"
+                      className="w-8 h-8 sm:w-9 sm:h-9 object-contain"
                     />
+                    <div className="text-left">
+                      <div className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center">
+                        Skipline
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#1868F8] ml-1"></span>
+                      </div>
+                      <div className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.08em]">
+                        Official Queue Signage
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold">
+                    <Sparkles className="h-3 w-3 text-blue-600" />
+                    Smart Virtual Queue
                   </div>
                 </div>
-              </div>
 
-              {/* 5. Instructions & Value Messaging */}
-              <div className="space-y-1 relative z-10 max-w-md text-center px-4">
-                <p className="text-sm font-extrabold text-white">
-                  Scan with your phone camera to join the line
-                </p>
-                <p className="text-xs text-slate-400 font-medium">
-                  No app download needed • Live wait times • Instant turn alerts
-                </p>
-                <div className="pt-1.5">
-                  <span className="inline-block px-3 py-1 rounded-lg bg-black/40 border border-white/10 text-blue-300 font-mono text-[11px] sm:text-xs break-all select-all">
-                    {customerUrl}
-                  </span>
+                {/* 2. Event Information Card */}
+                {event?.name && (
+                  <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-left mb-4 space-y-1.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
+                      Official Event
+                    </div>
+                    <h4 className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug break-words">
+                      {event.name}
+                    </h4>
+                    {event.description && (
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed font-medium">
+                        {event.description}
+                      </p>
+                    )}
+                    <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs text-slate-500">
+                      {event.venue && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                          <span className="font-semibold text-slate-700">
+                            {event.venue}
+                          </span>
+                          {mapsUrl && (
+                            <a
+                              href={mapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline font-medium inline-flex items-center gap-0.5 ml-1"
+                            >
+                              View Map <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {dateTime && (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                          <span>
+                            {dateTime.date} • {dateTime.time}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Queue Headline */}
+                <div className="w-full text-center space-y-1 mb-4">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-blue-800 text-[11px] font-bold uppercase tracking-wider">
+                    Scan to Join Queue
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight break-words px-2">
+                    {queueName ? `"${queueName}"` : "Join the Queue"}
+                  </h3>
+                  {queueDescription && (
+                    <p className="text-xs text-slate-600 max-w-md mx-auto line-clamp-2 px-2 leading-relaxed">
+                      {queueDescription}
+                    </p>
+                  )}
                 </div>
-              </div>
 
-              {/* 6. Footer Branding */}
-              <div className="w-full mt-4 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-500 relative z-10">
-                <div className="flex items-center gap-1.5">
-                  <img
-                    src="/icon.png"
-                    alt=""
-                    className="w-3.5 h-3.5 object-contain opacity-75"
+                {/* 4. High-contrast QR Container with Centered Skipline Logo */}
+                <div
+                  id={`qr-poster-svg-${queueId}`}
+                  className="relative bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 border-slate-900 mb-4 transition-transform hover:scale-[1.01]"
+                >
+                  <QRCode
+                    value={customerUrl}
+                    size={200}
+                    level="H"
+                    fgColor="#0f172a"
+                    bgColor="#ffffff"
+                    className="w-44 h-44 sm:w-48 sm:h-48"
                   />
-                  <span>
-                    Powered by <strong className="text-slate-400">Skipline</strong>
-                  </span>
+                  {/* Centered Flow Logo Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-11 h-11 bg-white rounded-xl shadow-md border-2 border-slate-200 flex items-center justify-center p-1.5">
+                      <img
+                        src="/icon.png"
+                        alt="Skipline"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <span>Join the queue, not the crowd.</span>
+
+                {/* 5. Instructions & Value Messaging */}
+                <div className="space-y-2 max-w-md text-center px-4 w-full">
+                  <p className="text-sm font-extrabold text-slate-900">
+                    Point your phone camera to join instantly
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium">
+                    No app download needed • Live wait times • Instant turn alerts
+                  </p>
+
+                  {/* 3 Step Icons */}
+                  <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+                      <Smartphone className="h-4 w-4 text-blue-600 mx-auto mb-1" />
+                      <div className="text-[10px] font-bold text-slate-800">1. Scan QR</div>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+                      <UserCheck className="h-4 w-4 text-blue-600 mx-auto mb-1" />
+                      <div className="text-[10px] font-bold text-slate-800">2. Join Line</div>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+                      <BellRing className="h-4 w-4 text-blue-600 mx-auto mb-1" />
+                      <div className="text-[10px] font-bold text-slate-800">3. Get Alerted</div>
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <span className="inline-block px-3 py-1 rounded-lg bg-slate-100 border border-slate-300 text-blue-700 font-mono text-[11px] sm:text-xs break-all select-all font-semibold">
+                      {customerUrl}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 6. Footer Branding */}
+                <div className="w-full mt-4 pt-2.5 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <img
+                      src="/icon.png"
+                      alt=""
+                      className="w-3.5 h-3.5 object-contain"
+                    />
+                    <span>
+                      Powered by <strong className="text-slate-700">Skipline</strong>
+                    </span>
+                  </div>
+                  <span>Join the queue, not the crowd.</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* --- DARK BRAND POSTER PREVIEW --- */
+              <div
+                ref={posterRef}
+                id={`poster-print-area-${queueId}`}
+                className="relative rounded-2xl p-4 sm:p-6 bg-gradient-to-b from-[#060913] via-[#0A1128] to-[#070B16] text-white shadow-2xl border border-white/10 flex flex-col items-center overflow-hidden"
+              >
+                {/* Subtle ambient lighting */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+
+                {/* 1. Brand Header */}
+                <div className="w-full flex items-center justify-between pb-3 mb-4 border-b border-white/10 relative z-10">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="/icon.png"
+                      alt="Skipline"
+                      className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow"
+                    />
+                    <div className="text-left">
+                      <div className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center">
+                        Skipline
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#1868F8] ml-1"></span>
+                      </div>
+                      <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.08em]">
+                        Official Queue Signage
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold">
+                    <Sparkles className="h-3 w-3" />
+                    Smart Virtual Queue
+                  </div>
+                </div>
+
+                {/* 2. Event Information Card */}
+                {event?.name && (
+                  <div className="w-full bg-white/[0.04] border border-white/10 rounded-xl p-3.5 text-left mb-4 space-y-1.5 relative z-10 backdrop-blur-xs">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                      Official Event
+                    </div>
+                    <h4 className="text-base sm:text-lg font-extrabold text-white leading-snug break-words">
+                      {event.name}
+                    </h4>
+                    {event.description && (
+                      <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed font-medium">
+                        {event.description}
+                      </p>
+                    )}
+                    <div className="pt-2 border-t border-white/10 flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs text-slate-400">
+                      {event.venue && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                          <span className="font-semibold text-slate-200">
+                            {event.venue}
+                          </span>
+                          {mapsUrl && (
+                            <a
+                              href={mapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 underline font-medium inline-flex items-center gap-0.5 ml-1"
+                            >
+                              View on Google Maps{" "}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {dateTime && (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                          <span>
+                            {dateTime.date} • {dateTime.time}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Queue Headline */}
+                <div className="w-full text-center space-y-1 mb-4 relative z-10">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[11px] font-bold uppercase tracking-wider">
+                    Queue Entry Point
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight break-words px-2">
+                    {queueName ? `"${queueName}"` : "Join the Queue"}
+                  </h3>
+                  {queueDescription && (
+                    <p className="text-xs text-slate-300 max-w-md mx-auto line-clamp-2 px-2 leading-relaxed">
+                      {queueDescription}
+                    </p>
+                  )}
+                </div>
+
+                {/* 4. High-contrast QR Container with Centered Skipline Logo */}
+                <div
+                  id={`qr-poster-svg-${queueId}`}
+                  className="relative bg-white p-4 sm:p-5 rounded-2xl shadow-2xl border-4 border-white/20 mb-4 transition-transform hover:scale-[1.01] z-10"
+                >
+                  <QRCode
+                    value={customerUrl}
+                    size={200}
+                    level="H"
+                    fgColor="#0f172a"
+                    bgColor="#ffffff"
+                    className="w-44 h-44 sm:w-48 sm:h-48"
+                  />
+                  {/* Centered Flow Logo Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-11 h-11 bg-white rounded-xl shadow-md border-2 border-slate-100 flex items-center justify-center p-1.5">
+                      <img
+                        src="/icon.png"
+                        alt="Skipline"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Instructions & Value Messaging */}
+                <div className="space-y-1 relative z-10 max-w-md text-center px-4">
+                  <p className="text-sm font-extrabold text-white">
+                    Scan with your phone camera to join the line
+                  </p>
+                  <p className="text-xs text-slate-400 font-medium">
+                    No app download needed • Live wait times • Instant turn alerts
+                  </p>
+                  <div className="pt-1.5">
+                    <span className="inline-block px-3 py-1 rounded-lg bg-black/40 border border-white/10 text-blue-300 font-mono text-[11px] sm:text-xs break-all select-all">
+                      {customerUrl}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 6. Footer Branding */}
+                <div className="w-full mt-4 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-500 relative z-10">
+                  <div className="flex items-center gap-1.5">
+                    <img
+                      src="/icon.png"
+                      alt=""
+                      className="w-3.5 h-3.5 object-contain opacity-75"
+                    />
+                    <span>
+                      Powered by <strong className="text-slate-400">Skipline</strong>
+                    </span>
+                  </div>
+                  <span>Join the queue, not the crowd.</span>
+                </div>
+              </div>
+            )}
 
             {/* QUICK ACTIONS ROW */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -606,10 +1513,11 @@ export function ShareQrDialog({
               <Button
                 variant="outline"
                 onClick={handlePrint}
+                disabled={isPrinting}
                 className="gap-2 font-bold h-11 border-border shadow-xs hover:bg-muted/80 text-foreground"
               >
                 <Printer className="h-4 w-4 text-slate-500" />
-                Print Signage
+                {isPrinting ? "Preparing..." : "Print Signage"}
               </Button>
 
               <Button
@@ -687,37 +1595,7 @@ export function ShareQrDialog({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Print-only CSS to isolate the poster */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #poster-print-area-${queueId},
-          #poster-print-area-${queueId} * {
-            visibility: visible;
-          }
-          #poster-print-area-${queueId} {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            padding: 40px;
-            background: #070b16 !important;
-            color: #ffffff !important;
-            border: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-          }
-        }
-      `}</style>
     </>
   );
 }
+
